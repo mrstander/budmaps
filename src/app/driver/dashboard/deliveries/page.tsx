@@ -66,6 +66,7 @@ const DeliveryCard = ({ order, onOrderUpdate }: { order: Order, onOrderUpdate: (
     const getTimestampInfo = () => {
         switch (order.status) {
             case 'ready-for-pickup':
+            case 'confirmed':
                 return order.createdAt ? `Placed: ${format(new Date((order.createdAt as any).seconds * 1000), 'PPpp')}` : '';
             case 'out-for-delivery':
                 return order.pickedUpAt ? `Accepted: ${format(new Date((order.pickedUpAt as any).seconds * 1000), 'PPpp')}` : '';
@@ -101,7 +102,7 @@ const DeliveryCard = ({ order, onOrderUpdate }: { order: Order, onOrderUpdate: (
             </CardContent>
             <CardFooter className="flex justify-between">
                 <div className="font-bold text-lg">Total: R{order.total.toFixed(2)} (Cash)</div>
-                {order.status === 'ready-for-pickup' && (
+                {(order.status === 'ready-for-pickup' || order.status === 'confirmed') && (
                     <Button onClick={handleAcceptDelivery}>
                         <Truck className="mr-2 h-4 w-4" /> Accept Delivery
                     </Button>
@@ -159,7 +160,7 @@ function DriverDeliveries({ driver, onOrderUpdate }: { driver: any, onOrderUpdat
 
     }, [firestore, driver?.uid, onOrderUpdate, dispensaries, isLoadingDispensaries]);
 
-    const availableOrders = useMemo(() => allOrders.filter(order => order.status === 'ready-for-pickup').sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()), [allOrders]);
+    const availableOrders = useMemo(() => allOrders.filter(order => order.status === 'ready-for-pickup' || order.status === 'confirmed').sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()), [allOrders]);
     const myOrders = useMemo(() => allOrders.filter(order => order.driverId === driver.uid), [allOrders, driver.uid]);
     const activeDeliveries = useMemo(() => myOrders.filter(order => order.status === 'out-for-delivery'), [myOrders]);
     const pastDeliveries = useMemo(() => myOrders.filter(order => order.status === 'completed' || order.status === 'cancelled').sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()), [myOrders]);
