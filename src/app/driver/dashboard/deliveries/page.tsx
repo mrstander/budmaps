@@ -133,7 +133,7 @@ function DriverDeliveries({ driver, onOrderUpdate }: { driver: any, onOrderUpdat
                 const availableOrdersQuery = query(
                     collectionGroup(firestore, 'orders'),
                     where('status', '==', 'ready-for-pickup'),
-                    orderBy('createdAt', 'desc')
+                    orderBy('createdAt', 'asc') // Changed to ascending to use default index
                 );
                 const availableSnapshot = await getDocs(availableOrdersQuery);
                 const fetchedAvailable = availableSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
