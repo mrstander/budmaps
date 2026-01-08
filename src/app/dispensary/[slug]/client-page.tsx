@@ -210,6 +210,12 @@ export default function DispensaryDetailClient({ dispensary, products }: { dispe
 
     const today = format(new Date(), 'EEEE');
 
+    const mapQuery = useMemo(() => {
+        return encodeURIComponent(`${dispensary.name}, ${dispensary.address}, ${dispensary.city}, ${dispensary.state}`);
+    }, [dispensary]);
+
+    const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
     return (
         <main className="flex-grow">
             <div className="relative h-64 md:h-80 w-full flex items-center justify-center">
@@ -244,16 +250,20 @@ export default function DispensaryDetailClient({ dispensary, products }: { dispe
                             </div>
                         </div>
                         <div className="relative w-full h-64 md:h-full rounded-lg overflow-hidden border">
-                            <Image
-                                src="https://images.unsplash.com/photo-1579546929518-9e396f3a8034?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2370&q=80"
-                                alt={`Map of ${dispensary.name}`}
-                                fill
-                                className="object-cover opacity-50 grayscale"
-                                data-ai-hint="map background"
-                            />
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <WeedMarker className="w-12 h-12 text-primary drop-shadow-lg" />
-                            </div>
+                            {googleMapsApiKey && googleMapsApiKey !== "YOUR_GOOGLE_MAPS_API_KEY_HERE" ? (
+                                 <iframe
+                                    className="w-full h-full"
+                                    loading="lazy"
+                                    allowFullScreen
+                                    src={`https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${mapQuery}`}>
+                                </iframe>
+                            ) : (
+                                <div className="w-full h-full bg-muted flex flex-col items-center justify-center text-center p-4">
+                                     <Compass className="w-12 h-12 text-muted-foreground/50 mb-4" />
+                                    <h3 className="font-semibold">Map Unavailable</h3>
+                                    <p className="text-sm text-muted-foreground">Please configure a Google Maps API key to display the map.</p>
+                                </div>
+                            )}
                         </div>
                    </div>
                 </Card>
