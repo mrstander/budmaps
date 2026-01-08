@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, Search, MapPin, User, ShoppingCart, LogOut, Shield, Truck, Store, Settings, Package } from 'lucide-react';
+import { Menu, Search, MapPin, User, ShoppingCart, LogOut, Shield, Truck, Store, Settings, Package, Map } from 'lucide-react';
 import { useCart } from '@/context/cart-context';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { useRouter } from 'next/navigation';
@@ -50,6 +50,7 @@ export default function Header() {
           </Link>
           <nav className="flex items-center gap-6 text-sm">
             <NavLink href="/dispensaries">Dispensaries</NavLink>
+            <NavLink href="/maps">Maps</NavLink>
           </nav>
         </div>
 
@@ -71,6 +72,7 @@ export default function Header() {
               </Link>
               <nav className="flex flex-col gap-4 p-4 text-lg">
                 <NavLink href="/dispensaries">Dispensaries</NavLink>
+                <NavLink href="/maps">Maps</NavLink>
                 <hr className="my-2 border-border" />
                 {user ? (
                   <>
