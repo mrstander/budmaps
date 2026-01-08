@@ -13,38 +13,21 @@ interface MapViewProps {
 
 const MapView = ({ dispensaries, onMarkerClick, selectedDispensary }: MapViewProps) => {
     const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-    const defaultCenter = { lat: -33.918861, lng: 18.423300 }; // Default to Cape Town
+    const defaultCenter = 'Cape Town, South Africa'; // Default to a known location string
     const defaultZoom = 10;
 
-    // Use selected dispensary's location or first dispensary's location or default
-    const mapCenter = selectedDispensary?.coordinates 
-        ? `${selectedDispensary.coordinates.top},${selectedDispensary.coordinates.left}`
+    // Use selected dispensary's address, or first dispensary's address, or default to Cape Town.
+    // Google Maps API can handle address strings.
+    const mapCenter = selectedDispensary?.address
+        ? `${selectedDispensary.address}, ${selectedDispensary.city}, ${selectedDispensary.state}`
         : dispensaries.length > 0 && dispensaries[0].address
-        ? dispensaries[0].address
-        : `${defaultCenter.lat},${defaultCenter.lng}`;
+        ? `${dispensaries[0].address}, ${dispensaries[0].city}, ${dispensaries[0].state}`
+        : defaultCenter;
         
     const mapSrc = googleMapsApiKey && googleMapsApiKey !== "YOUR_GOOGLE_MAPS_API_KEY_HERE"
-        ? `https://www.google.com/maps/embed/v1/view?key=${googleMapsApiKey}&center=${mapCenter}&zoom=${selectedDispensary ? 14 : defaultZoom}`
+        ? `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${encodeURIComponent(mapCenter)}&zoom=${selectedDispensary ? 14 : defaultZoom}`
         : '';
         
-    // This is a simple placeholder for markers since we are using an iframe
-    // A real implementation would use the Google Maps JS API for custom markers
-    const markers = dispensaries.map(dispensary => {
-        if (!dispensary.coordinates) return null;
-        const isSelected = selectedDispensary?.id === dispensary.id;
-        return (
-            <button
-                key={dispensary.id}
-                onClick={() => onMarkerClick(dispensary)}
-                className="absolute transform -translate-x-1/2 -translate-y-full"
-                style={{ top: dispensary.coordinates.top, left: dispensary.coordinates.left }}
-                aria-label={`Show ${dispensary.name}`}
-            >
-                <MapPin className={`w-8 h-8 drop-shadow-lg transition-all ${isSelected ? 'text-blue-600 scale-125' : 'text-primary'}`} />
-            </button>
-        )
-    })
-
     if (!googleMapsApiKey || googleMapsApiKey === "YOUR_GOOGLE_MAPS_API_KEY_HERE") {
         return (
             <div className="col-span-1 md:col-span-2 lg:col-span-3 bg-muted h-full flex flex-col items-center justify-center text-center p-4">
@@ -62,6 +45,7 @@ const MapView = ({ dispensaries, onMarkerClick, selectedDispensary }: MapViewPro
     return (
         <div className="col-span-1 md:col-span-2 lg:col-span-3 h-full relative">
             <iframe
+                key={mapCenter} // Add key to force re-render on center change
                 className="w-full h-full"
                 loading="lazy"
                 allowFullScreen
@@ -69,10 +53,11 @@ const MapView = ({ dispensaries, onMarkerClick, selectedDispensary }: MapViewPro
                 src={mapSrc}
             >
             </iframe>
-            {/* The markers are just for show in this iframe version */}
-            {/* <div className="absolute inset-0 pointer-events-none">{markers}</div> */}
+            {/* The markers would be implemented here if using Google Maps JS API */}
+            {/* For the iframe, the location is indicated by the built-in map marker. */}
         </div>
     );
 }
 
 export default memo(MapView);
+
