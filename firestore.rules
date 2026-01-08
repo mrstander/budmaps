@@ -53,11 +53,16 @@ service cloud.firestore {
     }
     
     function isAcceptingDelivery() {
-      // Allow if a driver is assigning themselves to a ready order
+      // Allow if a driver is assigning themselves to an order.
+      // The driver must be the one making the request.
+      // The old status must be 'ready-for-pickup' or 'confirmed'.
+      // The new status must be 'out-for-delivery'.
+      // The driver can only change status, driverId, and pickedUpAt.
       return isDriver() &&
-             request.resource.data.driverId == request.auth.uid && // The incoming driverId must be the current user
-             resource.data.status == 'ready-for-pickup' &&
-             request.resource.data.status == 'out-for-delivery';
+             request.resource.data.driverId == request.auth.uid &&
+             (resource.data.status == 'ready-for-pickup' || resource.data.status == 'confirmed') &&
+             request.resource.data.status == 'out-for-delivery' &&
+             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'driverId', 'pickedUpAt']);
     }
     
     function isCompletingDelivery() {
