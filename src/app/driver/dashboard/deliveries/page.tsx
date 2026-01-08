@@ -117,8 +117,7 @@ const DeliveryCard = ({ order, onOrderUpdate }: { order: Order, onOrderUpdate: (
 
 function DriverDeliveries({ driver, onOrderUpdate }: { driver: any, onOrderUpdate: () => void }) {
     const firestore = useFirestore();
-    const [availableOrders, setAvailableOrders] = useState<Order[]>([]);
-    const [myOrders, setMyOrders] = useState<Order[]>([]);
+    const [allOrders, setAllOrders] = useState<Order[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
 
@@ -129,25 +128,11 @@ function DriverDeliveries({ driver, onOrderUpdate }: { driver: any, onOrderUpdat
             setIsLoading(true);
             setError(null);
             try {
-                // Fetch all orders that are ready for pickup
-                const availableOrdersQuery = query(
-                    collectionGroup(firestore, 'orders'),
-                    where('status', '==', 'ready-for-pickup'),
-                    orderBy('createdAt', 'asc') // Changed to ascending to use default index
-                );
-                const availableSnapshot = await getDocs(availableOrdersQuery);
-                const fetchedAvailable = availableSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
-                setAvailableOrders(fetchedAvailable);
-
-                // Fetch all orders that are assigned to this driver
-                const myOrdersQuery = query(
-                    collectionGroup(firestore, 'orders'),
-                    where('driverId', '==', driver.uid),
-                    orderBy('createdAt', 'desc')
-                );
-                const myOrdersSnapshot = await getDocs(myOrdersQuery);
-                const fetchedMyOrders = myOrdersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
-                setMyOrders(fetchedMyOrders);
+                // Fetch all orders. We will filter them on the client.
+                const allOrdersQuery = query(collectionGroup(firestore, 'orders'));
+                const querySnapshot = await getDocs(allOrdersQuery);
+                const fetchedOrders = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+                setAllOrders(fetchedOrders);
 
             } catch (err: any) {
                 console.error("Error fetching deliveries:", err);
@@ -161,6 +146,8 @@ function DriverDeliveries({ driver, onOrderUpdate }: { driver: any, onOrderUpdat
 
     }, [firestore, driver?.uid, onOrderUpdate]);
 
+    const availableOrders = useMemo(() => allOrders.filter(order => order.status === 'ready-for-pickup').sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()), [allOrders]);
+    const myOrders = useMemo(() => allOrders.filter(order => order.driverId === driver.uid), [allOrders, driver.uid]);
     const activeDeliveries = useMemo(() => myOrders.filter(order => order.status === 'out-for-delivery'), [myOrders]);
     const pastDeliveries = useMemo(() => myOrders.filter(order => order.status === 'completed' || order.status === 'cancelled'), [myOrders]);
 
@@ -191,7 +178,7 @@ function DriverDeliveries({ driver, onOrderUpdate }: { driver: any, onOrderUpdat
     return (
         <div className="space-y-8">
             {renderList("Active Delivery", activeDeliveries, isLoading, error, "You have no active deliveries.", "Accept a delivery to see it here.")}
-            {renderList(`Available for Pickup`, availableOrders, isLoading, error, "No deliveries available for pickup.", "Check back later for new opportunities.")}
+            {renderList(`Available for Pickup (${availableOrders.length})`, availableOrders, isLoading, error, "No deliveries available for pickup.", "Check back later for new opportunities.")}
             {renderList("Past Deliveries", pastDeliveries, isLoading, error, "You have no past deliveries.", "Completed deliveries will appear here.")}
         </div>
     );
