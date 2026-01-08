@@ -45,6 +45,10 @@ service cloud.firestore {
     function isUpdatingOnlyHotDeal() {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isHotDeal']);
     }
+    
+    function isUpdatingOnlyFcmTokens() {
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fcmTokens']);
+    }
 
     // Helper function to check if stock is being decremented by 1
     function isDecrementingStock() {
@@ -100,7 +104,9 @@ service cloud.firestore {
     match /users/{userId} {
       // A user can read, update, and delete their own profile. An admin can read any profile.
       allow get: if isOwner(userId) || isAdmin();
-      allow update, delete: if isOwner(userId);
+      // Allow user to update their own profile, including FCM tokens
+      allow update: if isOwner(userId) && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['address', 'city', 'state', 'zipCode', 'email', 'fcmTokens']));
+      allow delete: if isOwner(userId);
       // Anyone can create a user document as long as the ID matches their own UID.
       allow create: if isSignedIn() && request.resource.data.id == userId;
       // Admins can list all users.

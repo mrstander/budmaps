@@ -403,7 +403,7 @@
         "commission": { "type": "number", "description": "The commission amount for budmaps." },
         "vendorPayout": { "type": "number", "description": "The final amount paid to the vendor (subtotal - commission)." },
         "total": { "type": "number", "description": "The total amount paid by the customer (subtotal + taxes + deliveryFee)." },
-        "paymentMethod": { "type": "string", "enum": ["cash"] },
+        "paymentMethod": { "type": "string", "enum": ["cash", "card"] },
         "status": { "type": "string", "enum": ["placed", "confirmed", "ready-for-pickup", "out-for-delivery", "completed", "cancelled"] },
         "createdAt": { "type": "string", "format": "date-time" },
         "confirmedAt": { "type": "string", "format": "date-time", "description": "Timestamp for when the vendor confirms the order." },
