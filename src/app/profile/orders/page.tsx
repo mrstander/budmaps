@@ -14,6 +14,7 @@ import { ShoppingCart } from 'lucide-react';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import { CheckCircle } from 'lucide-react';
 
 type FilterStatus = 'all' | 'placed' | 'out-for-delivery' | 'completed';
 
@@ -31,6 +32,12 @@ const OrderItem = ({ order }: { order: Order }) => {
                     <CardDescription>
                         Ordered on {format(orderDate, 'PP')}
                     </CardDescription>
+                    {order.status === 'confirmed' && (
+                        <div className="text-sm text-green-600 font-medium flex items-center gap-1.5 mt-1">
+                            <CheckCircle className="w-4 h-4" />
+                            The store has confirmed your order.
+                        </div>
+                    )}
                 </div>
                 <div className="text-right flex-shrink-0">
                     <p className="font-semibold text-lg">R{order.total.toFixed(2)}</p>
