@@ -1,0 +1,470 @@
+
+
+{
+  "entities": {
+    "Dispensary": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Dispensary",
+      "type": "object",
+      "description": "Represents a cannabis dispensary.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Dispensary entity. Should match the vendor's UID."
+        },
+        "vendorId": {
+          "type": "string",
+          "description": "The UID of the vendor who owns this dispensary."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the dispensary."
+        },
+        "address": {
+          "type": "string",
+          "description": "Street address of the dispensary."
+        },
+        "suburb": {
+          "type": "string",
+          "description": "Suburb where the dispensary is located."
+        },
+        "city": {
+          "type": "string",
+          "description": "City where the dispensary is located."
+        },
+        "state": {
+          "type": "string",
+          "description": "State where the dispensary is located."
+        },
+        "zipCode": {
+          "type": "string",
+          "description": "Zip code of the dispensary."
+        },
+        "phone": {
+          "type": "string",
+          "description": "Phone number of the dispensary."
+        },
+        "website": {
+          "type": "string",
+          "description": "Website URL of the dispensary.",
+          "format": "uri"
+        },
+        "hours": {
+          "type": "array",
+          "description": "Array of opening hours for each day.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "day": {
+                "type": "string",
+                "enum": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+              },
+              "open": {
+                "type": "string",
+                "format": "time"
+              },
+              "close": {
+                "type": "string",
+                "format": "time"
+              },
+              "isOpen": {
+                "type": "boolean"
+              }
+            },
+            "required": ["day", "open", "close", "isOpen"]
+          }
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL of the dispensary's image.",
+          "format": "uri"
+        },
+        "categoryIds": {
+          "type": "array",
+          "description": "References to Categories. (Relationship: Category N:N Dispensary)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "isFeatured": {
+          "type": "boolean",
+          "description": "Indicates if the dispensary is featured."
+        }
+      },
+      "required": [
+        "id",
+        "vendorId",
+        "name",
+        "address",
+        "city",
+        "state",
+        "zipCode",
+        "phone"
+      ]
+    },
+    "Category": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Category",
+      "type": "object",
+      "description": "Represents a category of cannabis products or dispensaries.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Category entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the category (e.g., 'Sativa', 'Indica', 'Edibles')."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the category."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL of the category's image.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date and time the user account was created."
+        },
+        "role": {
+          "type": "string",
+          "description": "The role of the user.",
+          "enum": [
+            "user",
+            "vendor",
+            "admin",
+            "driver"
+          ]
+        },
+        "address": {
+          "type": "string",
+          "description": "Street address of the user."
+        },
+        "city": {
+          "type": "string",
+          "description": "City where the user is located."
+        },
+        "state": {
+          "type": "string",
+          "description": "State where the user is located."
+        },
+        "zipCode": {
+          "type": "string",
+          "description": "Zip code of the user."
+        },
+        "fcmTokens": {
+            "type": "array",
+            "description": "Array of Firebase Cloud Messaging tokens for push notifications.",
+            "items": {
+                "type": "string"
+            }
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "role"
+      ]
+    },
+    "Driver": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Driver",
+      "type": "object",
+      "description": "Represents a delivery driver.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Driver entity, matches the user's UID."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user with the 'driver' role."
+        },
+        "vehicleDetails": {
+          "type": "string",
+          "description": "Description of the driver's vehicle (e.g., 'White Toyota Corolla - ABC 123 GP')."
+        },
+        "availabilityStatus": {
+          "type": "string",
+          "description": "The current status of the driver.",
+          "enum": [ "online", "offline", "on-delivery" ]
+        },
+        "city": {
+          "type": "string",
+          "description": "The city the driver operates in."
+        },
+        "state": {
+          "type": "string",
+          "description": "The state or province the driver operates in."
+        }
+      },
+      "required": [ "id", "userId", "availabilityStatus", "city", "state" ]
+    },
+    "Product": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Product",
+      "type": "object",
+      "description": "Represents a product sold by a dispensary.",
+      "properties": {
+        "id": {
+            "type": "string",
+            "description": "Unique identifier for the Product entity."
+        },
+        "slug": {
+          "type": "string",
+          "description": "URL-friendly version of the product name."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the product."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the product."
+        },
+        "category": {
+          "type": "string",
+          "description": "The category of product.",
+          "enum": [
+            "Flower",
+            "Vape",
+            "Edible",
+            "Concentrate",
+            "Pre-roll",
+            "Soda"
+          ]
+        },
+        "strain": {
+          "type": "string",
+          "description": "The strain of the product.",
+          "enum": [
+            "Sativa",
+            "Indica",
+            "Hybrid"
+          ]
+        },
+        "thc": {
+          "type": "number",
+          "description": "The THC percentage of the product."
+        },
+        "cbd": {
+          "type": "number",
+          "description": "The CBD percentage of the product."
+        },
+        "price": {
+          "type": "number",
+          "description": "The price of the product. Used for non-flower, non-edible types."
+        },
+        "weight": {
+          "type": "string",
+          "description": "The weight of the product (e.g., '3.5g', '1oz'). Used for non-flower, non-edible types."
+        },
+        "pricing": {
+            "type": "array",
+            "description": "Array of pricing tiers for Flower products based on weight.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "weight": { "type": "string" },
+                    "price": { "type": "number" },
+                    "stock": { "type": "number" }
+                },
+                "required": ["weight", "price", "stock"]
+            }
+        },
+        "ediblePricing": {
+          "type": "array",
+          "description": "Array of pricing tiers for Edible products based on strength.",
+          "items": {
+              "type": "object",
+              "properties": {
+                  "strength": { "type": "string" },
+                  "price": { "type": "number" },
+                  "salePrice": { "type": "number" },
+                  "stock": { "type": "number" }
+              },
+              "required": ["strength", "price", "stock"]
+          }
+        },
+        "sodaPricing": {
+          "type": "array",
+          "description": "Array of pricing tiers for Soda products based on flavour.",
+          "items": {
+              "type": "object",
+              "properties": {
+                  "flavour": { "type": "string" },
+                  "price": { "type": "number" },
+                  "salePrice": { "type": "number" },
+                  "stock": { "type": "number" }
+              },
+              "required": ["flavour", "price", "stock"]
+          }
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date and time the product was added."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL of the product's main image.",
+          "format": "uri"
+        },
+        "additionalImageUrls": {
+            "type": "array",
+            "description": "An array of URLs for additional product images.",
+            "items": {
+                "type": "string",
+                "format": "uri"
+            }
+        },
+        "stock": {
+          "type": "number",
+          "description": "The amount of product in stock for non-tiered products."
+        },
+        "effectsLength": {
+          "type": "string",
+          "description": "The duration of the edible's effects (e.g. '1-2 hours')."
+        },
+        "benefits": {
+          "type": "string",
+          "description": "The potential benefits of the edible (e.g. 'Pain relief')."
+        },
+        "flavour": {
+          "type": "string",
+          "description": "The flavour of the edible (e.g. 'Strawberry')."
+        },
+        "ingredients": {
+          "type": "string",
+          "description": "A list of ingredients in the edible."
+        },
+        "salePrice": {
+          "type": "number",
+          "description": "The discounted price of the product."
+        },
+        "isHotDeal": {
+          "type": "boolean",
+          "description": "Indicates if the deal is a special 'hot deal' featured by admins."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "category",
+        "description"
+      ]
+    },
+    "Order": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Order",
+      "type": "object",
+      "description": "Represents a customer order from a dispensary.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the order." },
+        "dispensaryId": { "type": "string", "description": "The ID of the dispensary the order is for." },
+        "dispensaryName": { "type": "string", "description": "The name of the dispensary." },
+        "customerId": { "type": "string", "description": "The UID of the customer who placed the order." },
+        "customerName": { "type": "string", "description": "The name of the customer." },
+        "customerEmail": { "type": "string", "description": "The email of the customer." },
+        "driverId": { "type": "string", "description": "The UID of the driver assigned to the delivery." },
+        "items": {
+          "type": "array",
+          "description": "The items included in the order.",
+          "items": { "type": "object" }
+        },
+        "subtotal": { "type": "number", "description": "The cost of items before taxes, fees, and commission." },
+        "taxes": { "type": "number", "description": "Calculated taxes for the order." },
+        "deliveryFee": { "type": "number", "description": "The fee charged for delivery." },
+        "commission": { "type": "number", "description": "The commission amount for budmaps." },
+        "vendorPayout": { "type": "number", "description": "The final amount paid to the vendor (subtotal - commission)." },
+        "total": { "type": "number", "description": "The total amount paid by the customer (subtotal + taxes + deliveryFee)." },
+        "paymentMethod": { "type": "string", "enum": ["cash", "card"] },
+        "status": { "type": "string", "enum": ["placed", "confirmed", "ready-for-pickup", "out-for-delivery", "completed", "cancelled"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "confirmedAt": { "type": "string", "format": "date-time", "description": "Timestamp for when the vendor confirms the order." },
+        "pickedUpAt": { "type": "string", "format": "date-time", "description": "Timestamp for when the driver accepts the delivery." },
+        "completedAt": { "type": "string", "format": "date-time", "description": "Timestamp for when the driver completes the delivery." },
+        "address": { "type": "string", "description": "Delivery address." },
+        "city": { "type": "string", "description": "Delivery city." },
+        "state": { "type": "string", "description": "Delivery state." },
+        "zipCode": { "type": "string", "description": "Delivery zip code." }
+      },
+      "required": [ "id", "dispensaryId", "customerId", "items", "subtotal", "taxes", "deliveryFee", "commission", "vendorPayout", "total", "paymentMethod", "status", "createdAt" ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/User"
+      },
+      "description": "Stores user profiles. Path-based ownership ensures that only the user can access their data."
+    },
+     "/users/{userId}/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Stores a copy of an order for a specific user. Owned by the user."
+    },
+    "/users/{userId}/dispensaries/{dispensaryId}": {
+      "schema": {
+        "$ref": "#/entities/Dispensary"
+      },
+      "description": "Stores a private copy of dispensary information for a specific vendor. Write access is restricted to the owning vendor."
+    },
+    "/drivers/{driverId}": {
+      "schema": { "$ref": "#/entities/Driver" },
+      "description": "Stores public information about a delivery driver."
+    },
+    "/dispensaries/{dispensaryId}": {
+      "schema": {
+        "$ref": "#/entities/Dispensary"
+      },
+      "description": "Stores public dispensary information. Assumes public read access, but write access is restricted to the owning vendor."
+    },
+     "/dispensaries/{dispensaryId}/products/{productId}": {
+      "schema": {
+        "$ref": "#/entities/Product"
+      },
+      "description": "Stores products for a specific dispensary. Publicly readable, but write access is restricted to the owning vendor."
+    },
+    "/dispensaries/{dispensaryId}/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Stores orders for a specific dispensary. Write access for customers, read access for the owning vendor."
+    },
+    "/categories/{categoryId}": {
+      "schema": {
+        "$ref": "#/entities/Category"
+      },
+      "description": "Stores categories for dispensaries. Assumes public read access."
+    }
+  }
+}

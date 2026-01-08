@@ -1,0 +1,4 @@
+name,description,type,strain,thc,cbd,price,weight,stock,imageUrl,additionalImageUrls,salePrice
+Pineapple Express Vape,"A sativa-dominant hybrid vape cartridge with a fruity flavor.",Vape,Sativa,85,1,450,"1g",50,"https://example.com/vape.jpg",,400
+OG Kush Pre-roll,"A convenient pre-rolled joint of the classic OG Kush strain.",Pre-roll,Indica,22,0.2,90,"1g",100,"https://example.com/preroll.jpg",,
+Live Resin Shatter,"High-purity cannabis concentrate with a glass-like consistency.",Concentrate,Hybrid,90,0.5,600,"1g",30,"https://example.com/shatter.jpg",,

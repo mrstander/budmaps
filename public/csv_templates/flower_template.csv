@@ -1,0 +1,3 @@
+name,description,strain,thc,cbd,imageUrl,additionalImageUrls,weight_1,price_1,stock_1,weight_2,price_2,stock_2
+OG Kush,"A classic indica-dominant strain known for its relaxing effects.","Indica",22.5,0.2,"https://example.com/og_kush.jpg","https://example.com/og_kush_2.jpg,https://example.com/og_kush_3.jpg",1g,120,50,3.5g,350,25
+Blue Dream,"A sativa-dominant hybrid originating in California.","Sativa",18,0.1,"https://example.com/blue_dream.jpg",,1g,110,60,3.5g,330,30

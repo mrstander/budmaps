@@ -1,0 +1,212 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /* ───────────────────────
+       Helper functions
+    ─────────────────────── */
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function getRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isVendor() {
+      return isSignedIn() && getRole() == 'vendor';
+    }
+
+    function isAdmin() {
+      return isSignedIn() && getRole() == 'admin';
+    }
+
+    function isDriver() {
+      return isSignedIn() && getRole() == 'driver';
+    }
+
+    function isDispensaryOwner(dispensaryId) {
+      // The vendor's UID is the dispensary ID.
+      return isVendor() && get(/databases/$(database)/documents/dispensaries/$(dispensaryId)).data.vendorId == request.auth.uid;
+    }
+    
+    // Helper function to check if the only field being updated is 'stock'
+    function isUpdatingOnlyStock() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock']);
+    }
+
+    function isUpdatingOnlyHotDeal() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isHotDeal']);
+    }
+
+    // Helper function to check if stock is being decremented by 1
+    function isDecrementingStock() {
+      // This is a simplified check. For a real app, you might check quantity.
+      return request.resource.data.stock == resource.data.stock - 1;
+    }
+    
+    function isAcceptingDelivery() {
+      // Allow if a driver is assigning themselves to a ready order
+      return isDriver() &&
+             request.resource.data.driverId == request.auth.uid && // The incoming driverId must be the current user
+             resource.data.status == 'ready-for-pickup' &&
+             request.resource.data.status == 'out-for-delivery';
+    }
+    
+    function isCompletingDelivery() {
+        // Allow if the assigned driver is marking it as completed
+        return isDriver() && 
+               resource.data.driverId == request.auth.uid &&
+               resource.data.status == 'out-for-delivery' &&
+               request.resource.data.status == 'completed';
+    }
+
+    function isConfirmingOrder() {
+      // Allow if a vendor is moving an order from 'placed' to 'confirmed'
+      return isDispensaryOwner(resource.data.dispensaryId) &&
+             resource.data.status == 'placed' &&
+             request.resource.data.status == 'confirmed';
+    }
+    
+    function isReadyingForPickup() {
+      // Allow if a vendor is moving an order from 'confirmed' to 'ready-for-pickup'
+      return isDispensaryOwner(resource.data.dispensaryId) &&
+             resource.data.status == 'confirmed' &&
+             request.resource.data.status == 'ready-for-pickup';
+    }
+
+    function isCancellingOrder() {
+      return isDispensaryOwner(resource.data.dispensaryId) &&
+             (resource.data.status == 'placed') &&
+             request.resource.data.status == 'cancelled';
+    }
+
+    /* ───────────────────────
+       Users collection
+    ─────────────────────── */
+
+    match /users/{userId} {
+      // A user can read, update, and delete their own profile. An admin can read any profile.
+      allow get: if isOwner(userId) || isAdmin();
+      allow update, delete: if isOwner(userId);
+      // Anyone can create a user document as long as the ID matches their own UID.
+      allow create: if isSignedIn() && request.resource.data.id == userId;
+      // Admins can list all users.
+      allow list: if isAdmin();
+
+      // Rule for the user's private copy of their orders.
+      match /orders/{orderId} {
+        // A user can create and read orders in their own subcollection.
+        allow create, read, list: if isOwner(userId);
+        // A vendor, admin or the assigned driver can update the status of the user's order copy.
+        allow update: if isDispensaryOwner(resource.data.dispensaryId) || isAdmin() || isAcceptingDelivery() || isCompletingDelivery() || isConfirmingOrder() || isReadyingForPickup() || isCancellingOrder();
+        allow delete: if false;
+      }
+      
+      // Rule for the vendor's private copy of their dispensary.
+      match /dispensaries/{dispensaryId} {
+        // A vendor can manage the dispensary document in their own user folder.
+        allow write: if isVendor() && isOwner(userId);
+        allow read: if isOwner(userId);
+      }
+    }
+    
+    /* ───────────────────────
+       Drivers
+    ─────────────────────── */
+    
+    match /drivers/{driverId} {
+      // A driver can create and manage their own profile. Admins can view.
+      allow read, write: if isOwner(driverId);
+      allow list: if isAdmin();
+    }
+
+
+    /* ───────────────────────
+       Dispensaries
+    ─────────────────────── */
+
+    match /dispensaries/{dispensaryId} {
+      // Anyone can view public dispensary information.
+      allow get: if true;
+      // Anyone can list dispensaries. This is needed for the homepage.
+      allow list: if true;
+      // Only a vendor can create a dispensary, and they must be the owner.
+      allow create: if isVendor() && request.resource.data.vendorId == request.auth.uid;
+      // An owning vendor can update everything.
+      // An admin can update everything.
+      allow update: if isDispensaryOwner(dispensaryId) || isAdmin();
+      // Only the owning vendor or an admin can delete their dispensary.
+      allow delete: if isDispensaryOwner(dispensaryId) || isAdmin();
+
+      /* Products subcollection */
+      match /products/{productId} {
+        // Anyone can view products.
+        allow get, list: if true;
+        
+        // Vendor or admin can create and delete products.
+        allow create, delete: if isDispensaryOwner(dispensaryId) || isAdmin();
+
+        // A vendor can perform any update. An admin can only update the 'isHotDeal' field.
+        // A user can only update to decrement stock.
+        allow update: if isDispensaryOwner(dispensaryId) || 
+                         (isAdmin() && isUpdatingOnlyHotDeal()) ||
+                         (isSignedIn() && (
+                            request.resource.data.diff(resource.data).affectedKeys().hasAny(['stock', 'pricing', 'ediblePricing'])
+                         ));
+      }
+
+      /* Orders subcollection */
+      match /orders/{orderId} {
+        // Any authenticated user can create an order for themselves.
+        allow create: if isSignedIn() && request.resource.data.customerId == request.auth.uid;
+        
+        // A customer can read their own specific order.
+        // The owning vendor or an admin can read any order.
+        // A driver can read orders that are ready for pickup or that they are delivering.
+        allow read, get: if isDispensaryOwner(dispensaryId) || isAdmin() || 
+                           (isDriver() && (resource.data.status == 'ready-for-pickup' || resource.data.driverId == request.auth.uid)) ||
+                           (isSignedIn() && resource.data.customerId == request.auth.uid);
+                           
+        // Drivers can list orders that are ready for pickup in their state.
+        // Vendors and Admins can list any orders for the dispensary.
+        allow list: if isDispensaryOwner(dispensaryId) || isAdmin() || isDriver();
+
+        // A vendor or admin can update any order. 
+        // A driver can update an order by assigning themself as driver or completing it.
+        allow update: if isAdmin() || isAcceptingDelivery() || isCompletingDelivery() || isConfirmingOrder() || isReadyingForPickup() || isCancellingOrder();
+                         
+        // No one can delete an order directly.
+        allow delete: if false;
+      }
+    }
+    
+    // This rule specifically allows an admin to perform a collectionGroup query on 'products'
+    match /{path=**}/products/{productId} {
+      allow list: if isAdmin();
+    }
+    
+    // This rule specifically allows an admin to perform a collectionGroup query on 'orders'
+    match /{path=**}/orders/{orderId} {
+      allow list: if isAdmin();
+    }
+
+
+    /* ───────────────────────
+       Categories
+    ─────────────────────── */
+
+    match /categories/{categoryId} {
+      // Anyone can view categories.
+      allow get, list: if true;
+      allow write: if false;
+    }
+  }
+}

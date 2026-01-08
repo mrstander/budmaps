@@ -1,0 +1,64 @@
+{
+  "placeholderImages": [
+    {
+      "id": "category-flower",
+      "description": "Cannabis flower buds",
+      "imageUrl": "https://images.unsplash.com/photo-1598973728783-6305ad902591?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxjYW5uYWJpcyUyMGZsb3dlcnxlbnwwfHx8fDE3NjU4MDcyNDJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cannabis flower"
+    },
+    {
+      "id": "category-vape",
+      "description": "Vape pen",
+      "imageUrl": "https://images.unsplash.com/photo-1579165466814-e646cfa4a3be?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx2YXBlJTIwcGVufGVufDB8fHx8MTc2NTY5Njc4NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "vape pen"
+    },
+    {
+      "id": "category-edible",
+      "description": "Cannabis infused gummy bears",
+      "imageUrl": "https://images.unsplash.com/photo-1636759175406-32f45f75033a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxjYW5uYWJpcyUyMGVkaWJsZXxlbnwwfHx8fDE3NjU4MDcyNDJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cannabis edible"
+    },
+    {
+      "id": "category-concentrate",
+      "description": "Cannabis concentrate (wax)",
+      "imageUrl": "https://images.unsplash.com/photo-1745422182996-92ccad8d22b7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxjYW5uYWJpcyUyMGNvbmNlbnRyYXRlfGVufDB8fHx8MTc2NTgwNzI0Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cannabis concentrate"
+    },
+    {
+      "id": "category-preroll",
+      "description": "Pre-rolled cannabis joints",
+      "imageUrl": "https://images.unsplash.com/photo-1620237723185-85b7f499fb84?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxjYW5uYWJpcyUyMGpvaW50fGVufDB8fHx8MTc2NTgwNzI0M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cannabis joint"
+    },
+    {
+      "id": "category-cbd",
+      "description": "CBD oil bottle",
+      "imageUrl": "https://images.unsplash.com/photo-1605039996729-91290de2cac4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxjYmQlMjBvaWx8ZW58MHx8fHwxNzY1ODA3MjQyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cbd oil"
+    },
+    {
+      "id": "dispensary-1",
+      "description": "Exterior of a modern dispensary",
+      "imageUrl": "https://images.unsplash.com/photo-1664163335111-9b8cc6b7d3f7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxkaXNwZW5zYXJ5JTIwc3RvcmVmcm9udHxlbnwwfHx8fDE3NjU4MDcyNDJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "dispensary storefront"
+    },
+    {
+      "id": "dispensary-2",
+      "description": "Interior of a stylish cannabis shop",
+      "imageUrl": "https://images.unsplash.com/photo-1764795849694-34b3316b3de4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxtb2Rlcm4lMjBkaXNwZW5zYXJ5fGVufDB8fHx8MTc2NTgwNzI0Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "modern dispensary"
+    },
+    {
+      "id": "dispensary-3",
+      "description": "A well-lit dispensary counter",
+      "imageUrl": "https://images.unsplash.com/photo-1604660660171-f4ed868c41b2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxjYW5uYWJpcyUyMHNob3B8ZW58MHx8fHwxNzY1ODA3MjQyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cannabis shop"
+    },
+    {
+      "id": "dispensary-4",
+      "description": "A dispensary with a green, natural aesthetic",
+      "imageUrl": "https://images.unsplash.com/photo-1764795850216-7bba254f8dcf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxkaXNwZW5zYXJ5JTIwaW50ZXJpb3J8ZW58MHx8fHwxNzY1ODA3MjQyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "dispensary interior"
+    }
+  ]
+}
