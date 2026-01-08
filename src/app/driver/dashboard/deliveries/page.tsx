@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
-import { collectionGroup, query, where, doc, writeBatch, getDocs, Timestamp, serverTimestamp } from 'firebase/firestore';
+import { collectionGroup, query, where, doc, writeBatch, getDocs, Timestamp, serverTimestamp, orderBy } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
 import type { Order } from '@/lib/types';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
@@ -117,7 +117,8 @@ const DeliveryCard = ({ order, onOrderUpdate }: { order: Order, onOrderUpdate: (
 
 function DriverDeliveries({ driver, onOrderUpdate }: { driver: any, onOrderUpdate: () => void }) {
     const firestore = useFirestore();
-    const [allOrders, setAllOrders] = useState<Order[]>([]);
+    const [availableOrders, setAvailableOrders] = useState<Order[]>([]);
+    const [myOrders, setMyOrders] = useState<Order[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
 
@@ -131,31 +132,25 @@ function DriverDeliveries({ driver, onOrderUpdate }: { driver: any, onOrderUpdat
                 // Fetch all orders that are ready for pickup
                 const availableOrdersQuery = query(
                     collectionGroup(firestore, 'orders'),
-                    where('status', '==', 'ready-for-pickup')
+                    where('status', '==', 'ready-for-pickup'),
+                    orderBy('createdAt', 'desc')
                 );
                 const availableSnapshot = await getDocs(availableOrdersQuery);
-                const availableOrders = availableSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+                const fetchedAvailable = availableSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+                setAvailableOrders(fetchedAvailable);
 
                 // Fetch all orders that are assigned to this driver
                 const myOrdersQuery = query(
                     collectionGroup(firestore, 'orders'),
                     where('driverId', '==', driver.uid),
-                    where('status', 'in', ['out-for-delivery', 'completed', 'cancelled'])
+                    orderBy('createdAt', 'desc')
                 );
                 const myOrdersSnapshot = await getDocs(myOrdersQuery);
-                const myOrders = myOrdersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
-
-                // Combine and de-duplicate
-                const combinedOrders = new Map<string, Order>();
-                [...availableOrders, ...myOrders].forEach(order => {
-                    combinedOrders.set(order.id, order);
-                });
-                
-                const sortedOrders = Array.from(combinedOrders.values()).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-                
-                setAllOrders(sortedOrders);
+                const fetchedMyOrders = myOrdersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+                setMyOrders(fetchedMyOrders);
 
             } catch (err: any) {
+                console.error("Error fetching deliveries:", err);
                 setError(err);
             } finally {
                 setIsLoading(false);
@@ -166,9 +161,8 @@ function DriverDeliveries({ driver, onOrderUpdate }: { driver: any, onOrderUpdat
 
     }, [firestore, driver?.uid, onOrderUpdate]);
 
-    const activeDeliveries = useMemo(() => allOrders?.filter(order => order.status === 'out-for-delivery' && order.driverId === driver.uid), [allOrders, driver.uid]);
-    const availableDeliveries = useMemo(() => allOrders?.filter(order => order.status === 'ready-for-pickup'), [allOrders]);
-    const pastDeliveries = useMemo(() => allOrders?.filter(order => (order.status === 'completed' || order.status === 'cancelled') && order.driverId === driver.uid), [allOrders, driver.uid]);
+    const activeDeliveries = useMemo(() => myOrders.filter(order => order.status === 'out-for-delivery'), [myOrders]);
+    const pastDeliveries = useMemo(() => myOrders.filter(order => order.status === 'completed' || order.status === 'cancelled'), [myOrders]);
 
     const renderList = (title: string, deliveries: Order[] | undefined, listIsLoading: boolean, listError: Error | null, emptyMessage: string, emptySubMessage: string) => (
         <div>
@@ -197,7 +191,7 @@ function DriverDeliveries({ driver, onOrderUpdate }: { driver: any, onOrderUpdat
     return (
         <div className="space-y-8">
             {renderList("Active Delivery", activeDeliveries, isLoading, error, "You have no active deliveries.", "Accept a delivery to see it here.")}
-            {renderList(`Available for Pickup`, availableDeliveries, isLoading, error, "No deliveries available for pickup.", "Check back later for new opportunities.")}
+            {renderList(`Available for Pickup`, availableOrders, isLoading, error, "No deliveries available for pickup.", "Check back later for new opportunities.")}
             {renderList("Past Deliveries", pastDeliveries, isLoading, error, "You have no past deliveries.", "Completed deliveries will appear here.")}
         </div>
     );
