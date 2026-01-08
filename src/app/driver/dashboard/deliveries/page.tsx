@@ -2,9 +2,9 @@
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
-import { collectionGroup, query, where, doc, writeBatch, getDocs, Timestamp, serverTimestamp, getDoc } from 'firebase/firestore';
-import { useFirestore, useUser, useDoc, useMemoFirebase } from '@/firebase';
-import type { Order, Driver } from '@/lib/types';
+import { collectionGroup, query, where, doc, writeBatch, getDocs, Timestamp, serverTimestamp } from 'firebase/firestore';
+import { useFirestore, useUser } from '@/firebase';
+import type { Order } from '@/lib/types';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -128,21 +128,32 @@ function DriverDeliveries({ driver, onOrderUpdate }: { driver: any, onOrderUpdat
             setIsLoading(true);
             setError(null);
             try {
-                // Fetch all orders that are either ready for pickup OR assigned to this driver
-                const ordersQuery = query(
+                // Fetch all orders that are ready for pickup
+                const availableOrdersQuery = query(
                     collectionGroup(firestore, 'orders'),
-                    where('status', 'in', ['ready-for-pickup', 'out-for-delivery', 'completed'])
+                    where('status', '==', 'ready-for-pickup')
                 );
+                const availableSnapshot = await getDocs(availableOrdersQuery);
+                const availableOrders = availableSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
 
-                const querySnapshot = await getDocs(ordersQuery);
-                const fetchedOrders = querySnapshot.docs
-                    .map(doc => ({ id: doc.id, ...doc.data() } as Order))
-                    .filter(order => 
-                        order.status === 'ready-for-pickup' || order.driverId === driver.uid
-                    )
-                    .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                // Fetch all orders that are assigned to this driver
+                const myOrdersQuery = query(
+                    collectionGroup(firestore, 'orders'),
+                    where('driverId', '==', driver.uid),
+                    where('status', 'in', ['out-for-delivery', 'completed', 'cancelled'])
+                );
+                const myOrdersSnapshot = await getDocs(myOrdersQuery);
+                const myOrders = myOrdersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
 
-                setAllOrders(fetchedOrders);
+                // Combine and de-duplicate
+                const combinedOrders = new Map<string, Order>();
+                [...availableOrders, ...myOrders].forEach(order => {
+                    combinedOrders.set(order.id, order);
+                });
+                
+                const sortedOrders = Array.from(combinedOrders.values()).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                
+                setAllOrders(sortedOrders);
 
             } catch (err: any) {
                 setError(err);
