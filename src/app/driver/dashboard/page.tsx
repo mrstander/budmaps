@@ -23,20 +23,30 @@ function AvailableDeliveriesStats() {
     const fetchAvailableDeliveries = async () => {
       setIsLoading(true);
       try {
-        const ordersQuery = query(
+        const qReady = query(
           collectionGroup(firestore, 'orders'),
           where('status', '==', 'ready-for-pickup')
         );
-        const querySnapshot = await getDocs(ordersQuery);
+        const qConfirmed = query(
+          collectionGroup(firestore, 'orders'),
+          where('status', '==', 'confirmed')
+        );
+
+        const [readySnapshot, confirmedSnapshot] = await Promise.all([
+            getDocs(qReady),
+            getDocs(qConfirmed)
+        ]);
         
         let totalEarnings = 0;
-        querySnapshot.forEach(doc => {
+        const allAvailableDocs = [...readySnapshot.docs, ...confirmedSnapshot.docs];
+
+        allAvailableDocs.forEach(doc => {
             const order = doc.data() as Order;
             totalEarnings += order.deliveryFee || 0;
         });
 
         setStats({
-            count: querySnapshot.size,
+            count: allAvailableDocs.length,
             totalEarnings: totalEarnings
         });
 
@@ -213,7 +223,7 @@ export default function DriverDashboardPage() {
           </CardHeader>
           <CardContent>
             {completedStats.earnings}
-            <p className="text-xs text-muted-foreground">From deliveries in progress</p>
+            <p className="text-xs text-muted-foreground">From all completed deliveries.</p>
           </CardContent>
         </Card>
         <Card>
