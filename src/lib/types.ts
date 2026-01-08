@@ -145,7 +145,7 @@ export type Order = {
   id: string;
   dispensaryId: string;
   dispensaryName: string;
-  dispensaryState?: string; // Added field
+  dispensaryState?: string;
   customerId: string;
   customerName: string;
   customerEmail: string;

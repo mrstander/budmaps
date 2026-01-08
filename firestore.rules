@@ -68,6 +68,26 @@ service cloud.firestore {
                request.resource.data.status == 'completed';
     }
 
+    function isConfirmingOrder() {
+      // Allow if a vendor is moving an order from 'placed' to 'confirmed'
+      return isDispensaryOwner(resource.data.dispensaryId) &&
+             resource.data.status == 'placed' &&
+             request.resource.data.status == 'confirmed';
+    }
+    
+    function isReadyingForPickup() {
+      // Allow if a vendor is moving an order from 'confirmed' to 'ready-for-pickup'
+      return isDispensaryOwner(resource.data.dispensaryId) &&
+             resource.data.status == 'confirmed' &&
+             request.resource.data.status == 'ready-for-pickup';
+    }
+
+    function isCancellingOrder() {
+      return isDispensaryOwner(resource.data.dispensaryId) &&
+             (resource.data.status == 'placed') &&
+             request.resource.data.status == 'cancelled';
+    }
+
     /* ───────────────────────
        Users collection
     ─────────────────────── */
@@ -86,7 +106,7 @@ service cloud.firestore {
         // A user can create and read orders in their own subcollection.
         allow create, read, list: if isOwner(userId);
         // A vendor, admin or the assigned driver can update the status of the user's order copy.
-        allow update: if isDispensaryOwner(resource.data.dispensaryId) || isAdmin() || isAcceptingDelivery() || isCompletingDelivery();
+        allow update: if isDispensaryOwner(resource.data.dispensaryId) || isAdmin() || isAcceptingDelivery() || isCompletingDelivery() || isConfirmingOrder() || isReadyingForPickup() || isCancellingOrder();
         allow delete: if false;
       }
       
@@ -155,13 +175,13 @@ service cloud.firestore {
                            (isDriver() && (resource.data.status == 'ready-for-pickup' || resource.data.driverId == request.auth.uid)) ||
                            (isSignedIn() && resource.data.customerId == request.auth.uid);
                            
-        // Drivers can list orders that are ready for pickup in their state.
+        // Drivers can list orders that are ready for pickup.
         // Vendors and Admins can list any orders for the dispensary.
         allow list: if isDispensaryOwner(dispensaryId) || isAdmin() || isDriver();
 
         // A vendor or admin can update any order. 
         // A driver can update an order by assigning themself as driver or completing it.
-        allow update: if isDispensaryOwner(dispensaryId) || isAdmin() || isAcceptingDelivery() || isCompletingDelivery();
+        allow update: if isAdmin() || isAcceptingDelivery() || isCompletingDelivery() || isConfirmingOrder() || isReadyingForPickup() || isCancellingOrder();
                          
         // No one can delete an order directly.
         allow delete: if false;
@@ -173,9 +193,9 @@ service cloud.firestore {
       allow list: if isAdmin();
     }
     
-    // This rule specifically allows an admin to perform a collectionGroup query on 'orders'
+    // This rule specifically allows a driver or admin to perform a collectionGroup query on 'orders'
     match /{path=**}/orders/{orderId} {
-      allow list: if isAdmin();
+      allow list: if isAdmin() || isDriver();
     }
 
 
