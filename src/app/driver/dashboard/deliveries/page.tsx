@@ -116,7 +116,7 @@ const DeliveryCard = ({ order, onOrderUpdate }: { order: Order, onOrderUpdate: (
     );
 };
 
-function DriverDeliveries({ driver, refreshKey, onOrderUpdate }: { driver: any, refreshKey: number, onOrderUpdate: () => void }) {
+function DriverDeliveries({ driver, onOrderUpdate }: { driver: any, onOrderUpdate: () => void }) {
     const firestore = useFirestore();
     const [allOrders, setAllOrders] = useState<Order[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -153,9 +153,9 @@ function DriverDeliveries({ driver, refreshKey, onOrderUpdate }: { driver: any, 
 
         fetchDeliveries();
 
-    }, [firestore, driver?.uid, dispensaries, isLoadingDispensaries, refreshKey]);
+    }, [firestore, driver?.uid, dispensaries, isLoadingDispensaries, onOrderUpdate]);
 
-    const availableOrders = useMemo(() => allOrders.filter(order => order.status === 'ready-for-pickup' || order.status === 'confirmed').sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()), [allOrders]);
+    const availableOrders = useMemo(() => allOrders.filter(order => order.status === 'ready-for-pickup').sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()), [allOrders]);
     const myOrders = useMemo(() => allOrders.filter(order => order.driverId === driver.uid), [allOrders, driver.uid]);
     const activeDeliveries = useMemo(() => myOrders.filter(order => order.status === 'out-for-delivery'), [myOrders]);
     const pastDeliveries = useMemo(() => myOrders.filter(order => order.status === 'completed' || order.status === 'cancelled').sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()), [myOrders]);
@@ -224,7 +224,7 @@ export default function DeliveriesPage() {
     return (
         <div>
             <h1 className="text-3xl font-bold mb-8">My Deliveries</h1>
-            <DriverDeliveries driver={driver} refreshKey={refreshKey} onOrderUpdate={forceRefresh} />
+            <DriverDeliveries driver={driver} onOrderUpdate={forceRefresh} />
         </div>
     );
 }
