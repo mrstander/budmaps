@@ -63,7 +63,7 @@ function AvailableDeliveriesStats() {
   };
 }
 
-function ActiveDeliveriesStats() {
+function CompletedDeliveriesStats() {
   const firestore = useFirestore();
   const { user } = useUser();
   const [stats, setStats] = useState({ count: 0, totalEarnings: 0 });
@@ -72,12 +72,12 @@ function ActiveDeliveriesStats() {
   useEffect(() => {
     if (!firestore || !user) return;
 
-    const fetchActiveDeliveries = async () => {
+    const fetchCompletedDeliveries = async () => {
       setIsLoading(true);
       try {
         const ordersQuery = query(
           collectionGroup(firestore, 'orders'),
-          where('status', '==', 'out-for-delivery'),
+          where('status', '==', 'completed'),
           where('driverId', '==', user.uid)
         );
         const querySnapshot = await getDocs(ordersQuery);
@@ -94,13 +94,13 @@ function ActiveDeliveriesStats() {
         });
 
       } catch (error) {
-        console.error("Error fetching active deliveries stats:", error);
+        console.error("Error fetching completed deliveries stats:", error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchActiveDeliveries();
+    fetchCompletedDeliveries();
   }, [firestore, user]);
 
   if (isLoading) {
@@ -180,7 +180,7 @@ const DriverStatusToggle = () => {
 
 export default function DriverDashboardPage() {
   const availableStats = AvailableDeliveriesStats();
-  const activeStats = ActiveDeliveriesStats();
+  const completedStats = CompletedDeliveriesStats();
   
   return (
     <div>
@@ -208,11 +208,11 @@ export default function DriverDashboardPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Delivery Earnings</CardTitle>
+            <CardTitle className="text-sm font-medium">Completed Delivery Earnings</CardTitle>
             <Wallet className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {activeStats.earnings}
+            {completedStats.earnings}
             <p className="text-xs text-muted-foreground">From deliveries in progress</p>
           </CardContent>
         </Card>
@@ -242,5 +242,3 @@ export default function DriverDashboardPage() {
     </div>
   );
 }
-
-    
