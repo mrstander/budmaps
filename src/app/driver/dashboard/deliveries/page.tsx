@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
-import { collectionGroup, query, where, doc, writeBatch, getDocs, Timestamp, serverTimestamp, orderBy, collection } from 'firebase/firestore';
+import { collection, query, where, doc, writeBatch, getDocs, Timestamp, serverTimestamp, orderBy, collection } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
 import type { Order } from '@/lib/types';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
@@ -117,7 +117,7 @@ const DeliveryCard = ({ order, onOrderUpdate }: { order: Order, onOrderUpdate: (
     );
 };
 
-function DriverDeliveries({ driver, onOrderUpdate }: { driver: any, onOrderUpdate: () => void }) {
+function DriverDeliveries({ driver, refreshKey, onOrderUpdate }: { driver: any, refreshKey: number, onOrderUpdate: () => void }) {
     const firestore = useFirestore();
     const [allOrders, setAllOrders] = useState<Order[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -133,8 +133,6 @@ function DriverDeliveries({ driver, onOrderUpdate }: { driver: any, onOrderUpdat
             try {
                 let fetchedOrders: Order[] = [];
 
-                // Fetch all orders from all dispensaries.
-                // This is not perfectly scalable but works for a reasonable number of dispensaries.
                 for (const dispensary of dispensaries) {
                     const ordersRef = collection(firestore, `dispensaries/${dispensary.id}/orders`);
                     const querySnapshot = await getDocs(ordersRef);
@@ -143,9 +141,7 @@ function DriverDeliveries({ driver, onOrderUpdate }: { driver: any, onOrderUpdat
                     });
                 }
                 
-                // Remove duplicates by ID, just in case of any data inconsistencies
                 const uniqueOrders = Array.from(new Map(fetchedOrders.map(order => [order.id, order])).values());
-
                 setAllOrders(uniqueOrders);
 
             } catch (err: any) {
@@ -158,7 +154,7 @@ function DriverDeliveries({ driver, onOrderUpdate }: { driver: any, onOrderUpdat
 
         fetchDeliveries();
 
-    }, [firestore, driver?.uid, onOrderUpdate, dispensaries, isLoadingDispensaries]);
+    }, [firestore, driver?.uid, dispensaries, isLoadingDispensaries, refreshKey]);
 
     const availableOrders = useMemo(() => allOrders.filter(order => order.status === 'ready-for-pickup' || order.status === 'confirmed').sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()), [allOrders]);
     const myOrders = useMemo(() => allOrders.filter(order => order.driverId === driver.uid), [allOrders, driver.uid]);
@@ -177,7 +173,7 @@ function DriverDeliveries({ driver, onOrderUpdate }: { driver: any, onOrderUpdat
             {listError && <p className="text-destructive">Error: {listError.message}</p>}
             {!listIsLoading && !listError && deliveries && deliveries.length > 0 ? (
                 <div className="space-y-4">
-                    {deliveries.map(order => <DeliveryCard key={`${order.id}-${order.status}`} order={order} onOrderUpdate={onOrderUpdate} />)}
+                    {deliveries.map(order => <DeliveryCard key={order.id} order={order} onOrderUpdate={onOrderUpdate} />)}
                 </div>
             ) : !listIsLoading && !listError && (
                 <Card className="flex flex-col items-center justify-center p-8 text-center">
@@ -229,7 +225,7 @@ export default function DeliveriesPage() {
     return (
         <div>
             <h1 className="text-3xl font-bold mb-8">My Deliveries</h1>
-            <DriverDeliveries driver={driver} onOrderUpdate={forceRefresh} />
+            <DriverDeliveries driver={driver} refreshKey={refreshKey} onOrderUpdate={forceRefresh} />
         </div>
     );
 }
