@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
-import { collectionGroup, query, where, doc, writeBatch, getDocs, Timestamp, serverTimestamp, orderBy } from 'firebase/firestore';
+import { collectionGroup, query, where, doc, writeBatch, getDocs, Timestamp, serverTimestamp, orderBy, collection } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
 import type { Order } from '@/lib/types';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Truck, Check, Package, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { useDispensaries } from '@/hooks/use-dispensaries';
 
 const DeliveryCard = ({ order, onOrderUpdate }: { order: Order, onOrderUpdate: () => void }) => {
     const firestore = useFirestore();
@@ -120,19 +121,31 @@ function DriverDeliveries({ driver, onOrderUpdate }: { driver: any, onOrderUpdat
     const [allOrders, setAllOrders] = useState<Order[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
+    const { dispensaries, isLoading: isLoadingDispensaries } = useDispensaries();
 
     useEffect(() => {
-        if (!firestore || !driver?.uid) return;
+        if (!firestore || !driver?.uid || isLoadingDispensaries) return;
 
         const fetchDeliveries = async () => {
             setIsLoading(true);
             setError(null);
             try {
-                // Fetch all orders. We will filter them on the client.
-                const allOrdersQuery = query(collectionGroup(firestore, 'orders'));
-                const querySnapshot = await getDocs(allOrdersQuery);
-                const fetchedOrders = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
-                setAllOrders(fetchedOrders);
+                let fetchedOrders: Order[] = [];
+
+                // Fetch all orders from all dispensaries.
+                // This is not perfectly scalable but works for a reasonable number of dispensaries.
+                for (const dispensary of dispensaries) {
+                    const ordersRef = collection(firestore, `dispensaries/${dispensary.id}/orders`);
+                    const querySnapshot = await getDocs(ordersRef);
+                    querySnapshot.forEach(doc => {
+                        fetchedOrders.push({ id: doc.id, ...doc.data() } as Order);
+                    });
+                }
+                
+                // Remove duplicates by ID, just in case of any data inconsistencies
+                const uniqueOrders = Array.from(new Map(fetchedOrders.map(order => [order.id, order])).values());
+
+                setAllOrders(uniqueOrders);
 
             } catch (err: any) {
                 console.error("Error fetching deliveries:", err);
@@ -144,14 +157,14 @@ function DriverDeliveries({ driver, onOrderUpdate }: { driver: any, onOrderUpdat
 
         fetchDeliveries();
 
-    }, [firestore, driver?.uid, onOrderUpdate]);
+    }, [firestore, driver?.uid, onOrderUpdate, dispensaries, isLoadingDispensaries]);
 
     const availableOrders = useMemo(() => allOrders.filter(order => order.status === 'ready-for-pickup').sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()), [allOrders]);
     const myOrders = useMemo(() => allOrders.filter(order => order.driverId === driver.uid), [allOrders, driver.uid]);
     const activeDeliveries = useMemo(() => myOrders.filter(order => order.status === 'out-for-delivery'), [myOrders]);
-    const pastDeliveries = useMemo(() => myOrders.filter(order => order.status === 'completed' || order.status === 'cancelled'), [myOrders]);
+    const pastDeliveries = useMemo(() => myOrders.filter(order => order.status === 'completed' || order.status === 'cancelled').sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()), [myOrders]);
 
-    const renderList = (title: string, deliveries: Order[] | undefined, listIsLoading: boolean, listError: Error | null, emptyMessage: string, emptySubMessage: string) => (
+    const renderList = (title: string, deliveries: Order[], listIsLoading: boolean, listError: Error | null, emptyMessage: string, emptySubMessage: string) => (
         <div>
             <h2 className="text-2xl font-bold mb-4">{title}</h2>
             {listIsLoading && (
@@ -163,7 +176,7 @@ function DriverDeliveries({ driver, onOrderUpdate }: { driver: any, onOrderUpdat
             {listError && <p className="text-destructive">Error: {listError.message}</p>}
             {!listIsLoading && !listError && deliveries && deliveries.length > 0 ? (
                 <div className="space-y-4">
-                    {deliveries.map(order => <DeliveryCard key={order.id} order={order} onOrderUpdate={onOrderUpdate} />)}
+                    {deliveries.map(order => <DeliveryCard key={`${order.id}-${order.status}`} order={order} onOrderUpdate={onOrderUpdate} />)}
                 </div>
             ) : !listIsLoading && !listError && (
                 <Card className="flex flex-col items-center justify-center p-8 text-center">
