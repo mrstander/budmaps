@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
-import { collection, query, where, doc, writeBatch, getDocs, Timestamp, serverTimestamp, orderBy, collection } from 'firebase/firestore';
+import { collection, query, where, doc, writeBatch, getDocs, Timestamp, serverTimestamp, orderBy } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
 import type { Order } from '@/lib/types';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
