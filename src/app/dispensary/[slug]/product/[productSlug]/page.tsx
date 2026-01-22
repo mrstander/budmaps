@@ -16,15 +16,15 @@ async function getDispensaryBySlug(slug: string): Promise<Dispensary | null> {
     const dispensariesCol = collection(db, 'dispensaries');
     const q = query(dispensariesCol, where("slug", "==", slug));
     const dispensarySnapshot = await getDocs(q);
-    
+
     if (dispensarySnapshot.empty) {
-        return null;
+      return null;
     }
 
     const dispensaryDoc = dispensarySnapshot.docs[0];
     const data = dispensaryDoc.data();
-    return { 
-      ...data, 
+    return {
+      ...data,
       id: dispensaryDoc.id,
       createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || null),
       updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : (data.updatedAt || null),
@@ -36,13 +36,13 @@ async function getDispensaryBySlug(slug: string): Promise<Dispensary | null> {
 }
 
 const processProductDoc = (doc: any): Product => {
-    const data = doc.data();
-    return {
-        ...data,
-        id: doc.id,
-        createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || null),
-        updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : (data.updatedAt || null),
-    } as Product;
+  const data = doc.data();
+  return {
+    ...data,
+    id: doc.id,
+    createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || null),
+    updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : (data.updatedAt || null),
+  } as Product;
 };
 
 async function getProductBySlug(dispensaryId: string, productSlug: string): Promise<Product | null> {
@@ -56,7 +56,7 @@ async function getProductBySlug(dispensaryId: string, productSlug: string): Prom
     if (productSnapshot.empty) {
       return null;
     }
-    
+
     const productDoc = productSnapshot.docs[0];
     return processProductDoc(productDoc);
   } catch (error) {
@@ -66,32 +66,33 @@ async function getProductBySlug(dispensaryId: string, productSlug: string): Prom
 }
 
 async function getRelatedProducts(dispensaryId: string, currentProductId: string): Promise<Product[]> {
-    try {
-        const firebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-        const db = getFirestore(firebaseApp);
-        const productsCol = collection(db, 'dispensaries', dispensaryId, 'products');
-        const q = query(productsCol, limit(5)); // Get some products
-        const snapshot = await getDocs(q);
+  try {
+    const firebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    const db = getFirestore(firebaseApp);
+    const productsCol = collection(db, 'dispensaries', dispensaryId, 'products');
+    const q = query(productsCol, limit(5)); // Get some products
+    const snapshot = await getDocs(q);
 
-        return snapshot.docs
-            .map(processProductDoc)
-            .filter(product => product.id !== currentProductId) // Exclude the current product
-            .slice(0, 4); // Ensure we only return up to 4
-    } catch (error) {
-        console.error("Error fetching related products:", error);
-        return [];
-    }
+    return snapshot.docs
+      .map(processProductDoc)
+      .filter(product => product.id !== currentProductId) // Exclude the current product
+      .slice(0, 4); // Ensure we only return up to 4
+  } catch (error) {
+    console.error("Error fetching related products:", error);
+    return [];
+  }
 }
 
 
-export default async function ProductPage({ params }: { params: { slug: string, productSlug: string } }) {
-  const dispensary = await getDispensaryBySlug(params.slug);
-  
+export default async function ProductPage({ params }: { params: Promise<{ slug: string, productSlug: string }> }) {
+  const { slug, productSlug } = await params;
+  const dispensary = await getDispensaryBySlug(slug);
+
   if (!dispensary || !dispensary.id) {
     notFound();
   }
-  
-  const product = await getProductBySlug(dispensary.id, params.productSlug);
+
+  const product = await getProductBySlug(dispensary.id, productSlug);
 
   if (!product) {
     notFound();
@@ -101,9 +102,9 @@ export default async function ProductPage({ params }: { params: { slug: string, 
 
   return (
     <div className="flex flex-col min-h-dvh bg-background text-foreground">
-        <HeaderProvider />
-        <ProductDetailClient product={product} dispensary={dispensary} relatedProducts={relatedProducts} />
-        <Footer />
+      <HeaderProvider />
+      <ProductDetailClient product={product} dispensary={dispensary} relatedProducts={relatedProducts} />
+      <Footer />
     </div>
   );
 }

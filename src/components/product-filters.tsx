@@ -4,179 +4,235 @@ import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import type { Product } from '@/lib/types';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from './ui/accordion';
 
-const productTypes: Product['type'][] = ['Flower', 'Vape', 'Edible', 'Concentrate', 'Pre-roll', 'Soda'];
+/* ------------------ Constants ------------------ */
+
+const productTypes: Product['type'][] = [
+  'Flower',
+  'Vape',
+  'Edible',
+  'Concentrate',
+  'Pre-roll',
+  'Soda',
+];
+
 const strainTypes: Product['strain'][] = ['Sativa', 'Indica', 'Hybrid'];
+
+const EMPTY_SET = new Set<string>();
+
+/* ------------------ Helpers ------------------ */
+
+const getProductStock = (product: Product): number => {
+  if (product.type === 'Flower' && product.pricing) {
+    return product.pricing.reduce((sum, tier) => sum + (tier.stock || 0), 0);
+  }
+
+  if (product.type === 'Edible' && product.ediblePricing) {
+    return product.ediblePricing.reduce((sum, tier) => sum + (tier.stock || 0), 0);
+  }
+
+  if (product.type === 'Soda' && product.sodaPricing) {
+    return product.sodaPricing.reduce((sum, tier) => sum + (tier.stock || 0), 0);
+  }
+
+  return product.stock || 0;
+};
+
+const getBrands = (products: Product[]): string[] =>
+  Array.from(
+    new Set(
+      products
+        .map(p => p.brand)
+        .filter((brand): brand is string => Boolean(brand))
+    )
+  );
+
+/* ------------------ Props ------------------ */
 
 interface ProductFiltersProps {
   products: Product[];
   onFilterChange: (filteredProducts: Product[]) => void;
   initialCategoryFilter?: Set<string>;
-  initialCbdFilter?: boolean;
 }
 
-const getProductStock = (product: Product): number => {
-    if (product.type === 'Flower' && product.pricing) {
-        return product.pricing.reduce((sum, tier) => sum + (tier.stock || 0), 0);
-    }
-    if (product.type === 'Edible' && product.ediblePricing) {
-        return product.ediblePricing.reduce((sum, tier) => sum + (tier.stock || 0), 0);
-    }
-    if (product.type === 'Soda' && product.sodaPricing) {
-        return product.sodaPricing.reduce((sum, tier) => sum + (tier.stock || 0), 0);
-    }
-    return product.stock || 0;
-};
+/* ------------------ Component ------------------ */
 
-export default function ProductFilters({ 
-  products, 
-  onFilterChange, 
-  initialCategoryFilter = new Set(),
-  initialCbdFilter = false
+export default function ProductFilters({
+  products,
+  onFilterChange,
+  initialCategoryFilter = EMPTY_SET,
 }: ProductFiltersProps) {
-  const [selectedTypes, setSelectedTypes] = useState<Set<string>>(initialCategoryFilter);
+  const [selectedTypes, setSelectedTypes] =
+    useState<Set<string>>(initialCategoryFilter);
+
   const [selectedStrains, setSelectedStrains] = useState<Set<string>>(new Set());
-  const [showCbdOnly, setShowCbdOnly] = useState<boolean>(initialCbdFilter);
+  const [selectedBrands, setSelectedBrands] = useState<Set<string>>(new Set());
+
+  /* ------------------ Filtering ------------------ */
 
   useEffect(() => {
-    const noFiltersApplied = selectedTypes.size === 0 && selectedStrains.size === 0 && !showCbdOnly;
+    const noFiltersApplied =
+      selectedTypes.size === 0 &&
+      selectedStrains.size === 0 &&
+      selectedBrands.size === 0;
 
     const filtered = products.filter(product => {
-      const typeMatch = selectedTypes.size === 0 || selectedTypes.has(product.type);
-      const strainMatch = selectedStrains.size === 0 || (product.strain && selectedStrains.has(product.strain));
-      const cbdMatch = !showCbdOnly || (product.cbd && product.cbd > 0);
-      
-      const stockMatch = noFiltersApplied ? getProductStock(product) > 0 : true;
+      const typeMatch =
+        selectedTypes.size === 0 || selectedTypes.has(product.type);
 
-      return typeMatch && strainMatch && cbdMatch && stockMatch;
+      const strainMatch =
+        selectedStrains.size === 0 ||
+        (product.strain && selectedStrains.has(product.strain));
+
+      const brandMatch =
+        selectedBrands.size === 0 ||
+        (product.brand && selectedBrands.has(product.brand));
+
+      const stockMatch = noFiltersApplied
+        ? getProductStock(product) > 0
+        : true;
+
+      return typeMatch && strainMatch && brandMatch && stockMatch;
     });
+
     onFilterChange(filtered);
-  }, [selectedTypes, selectedStrains, showCbdOnly, products, onFilterChange]);
-  
-  // Reset local state if initial props change
+  }, [
+    selectedTypes,
+    selectedStrains,
+    selectedBrands,
+    products,
+    onFilterChange,
+  ]);
+
+  /* ------------------ Sync Initial Filters ------------------ */
+
   useEffect(() => {
     setSelectedTypes(initialCategoryFilter);
   }, [initialCategoryFilter]);
 
-  useEffect(() => {
-    setShowCbdOnly(initialCbdFilter);
-  }, [initialCbdFilter]);
+  /* ------------------ Handlers ------------------ */
 
-  const handleTypeChange = (type: string) => {
-    setSelectedTypes(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(type)) {
-        newSet.delete(type);
-      } else {
-        newSet.add(type);
-      }
-      return newSet;
+  const toggleSetValue = (
+    value: string,
+    setFn: React.Dispatch<React.SetStateAction<Set<string>>>
+  ) => {
+    setFn(prev => {
+      const next = new Set(prev);
+      next.has(value) ? next.delete(value) : next.add(value);
+      return next;
     });
   };
 
-  const handleStrainChange = (strain: string) => {
-    setSelectedStrains(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(strain)) {
-        newSet.delete(strain);
-      } else {
-        newSet.add(strain);
-      }
-      return newSet;
-    });
-  };
+  /* ------------------ Memoised Data ------------------ */
 
-  const categoryCounts = useMemo(() => {
-    return productTypes.reduce((acc, type) => {
-      acc[type] = products.filter(p => p.type === type && getProductStock(p) > 0).length;
-      return acc;
-    }, {} as Record<string, number>);
-  }, [products]);
+  const brands = useMemo(() => getBrands(products), [products]);
 
-  const strainCounts = useMemo(() => {
-    return strainTypes.reduce((acc, strain) => {
-      acc[strain] = products.filter(p => p.strain === strain).length;
-      return acc;
-    }, {} as Record<string, number>);
-  }, [products]);
-  
-  const cbdCount = useMemo(() => {
-      return products.filter(p => p.cbd && p.cbd > 0).length;
-  }, [products]);
+  /* ------------------ UI ------------------ */
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Filter & Sort</CardTitle>
+        <CardTitle>Filter</CardTitle>
       </CardHeader>
+
       <CardContent>
-        <Accordion type="multiple" defaultValue={['type', 'strain', 'other']} className="w-full">
+        <Accordion
+          type="multiple"
+          defaultValue={['type', 'strain', 'brand']}
+          className="w-full"
+        >
+          {/* CATEGORY */}
           <AccordionItem value="type">
-            <AccordionTrigger className="text-base font-semibold">Category</AccordionTrigger>
+            <AccordionTrigger className="text-base font-semibold">
+              Category
+            </AccordionTrigger>
             <AccordionContent>
               <div className="grid gap-2 pt-2">
                 {productTypes.map(type => (
-                  categoryCounts[type] > 0 && (
-                    <div key={type} className="flex items-center justify-between space-x-2">
-                      <div className="flex items-center space-x-2">
-                          <Checkbox
-                          id={`type-${type}`}
-                          checked={selectedTypes.has(type)}
-                          onCheckedChange={() => handleTypeChange(type)}
-                          />
-                          <Label htmlFor={`type-${type}`} className="font-normal text-sm cursor-pointer">{type}</Label>
-                      </div>
-                      <span className="text-sm text-muted-foreground">{categoryCounts[type]}</span>
-                    </div>
-                  )
+                  <div key={type} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`type-${type}`}
+                      checked={selectedTypes.has(type)}
+                      onCheckedChange={() =>
+                        toggleSetValue(type, setSelectedTypes)
+                      }
+                    />
+                    <Label
+                      htmlFor={`type-${type}`}
+                      className="font-normal text-sm cursor-pointer"
+                    >
+                      {type}
+                    </Label>
+                  </div>
                 ))}
               </div>
             </AccordionContent>
           </AccordionItem>
+
+          {/* STRAIN */}
           <AccordionItem value="strain">
-            <AccordionTrigger className="text-base font-semibold">Strain</AccordionTrigger>
+            <AccordionTrigger className="text-base font-semibold">
+              Strain
+            </AccordionTrigger>
             <AccordionContent>
               <div className="grid gap-2 pt-2">
                 {strainTypes.map(strain => (
-                  strainCounts[strain] > 0 && (
-                  <div key={strain} className="flex items-center justify-between space-x-2">
-                    <div className="flex items-center space-x-2">
-                        <Checkbox
-                        id={`strain-${strain}`}
-                        checked={selectedStrains.has(strain)}
-                        onCheckedChange={() => handleStrainChange(strain)}
-                        />
-                        <Label htmlFor={`strain-${strain}`} className="font-normal text-sm cursor-pointer">{strain}</Label>
-                    </div>
-                    <span className="text-sm text-muted-foreground">{strainCounts[strain]}</span>
+                  <div key={strain} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`strain-${strain}`}
+                      checked={selectedStrains.has(strain)}
+                      onCheckedChange={() =>
+                        toggleSetValue(strain, setSelectedStrains)
+                      }
+                    />
+                    <Label
+                      htmlFor={`strain-${strain}`}
+                      className="font-normal text-sm cursor-pointer"
+                    >
+                      {strain}
+                    </Label>
                   </div>
-                  )
                 ))}
               </div>
             </AccordionContent>
           </AccordionItem>
-           <AccordionItem value="other">
-            <AccordionTrigger className="text-base font-semibold">Other</AccordionTrigger>
-            <AccordionContent>
-              <div className="grid gap-2 pt-2">
-                  <div className="flex items-center justify-between space-x-2">
-                    <div className="flex items-center space-x-2">
-                        <Checkbox
-                        id="showCbdOnly"
-                        checked={showCbdOnly}
-                        onCheckedChange={(checked) => setShowCbdOnly(!!checked)}
-                        disabled={cbdCount === 0}
-                        />
-                        <Label htmlFor="showCbdOnly" className="font-normal text-sm cursor-pointer">CBD</Label>
+
+          {/* BRAND (ONLY IF EXISTS) */}
+          {brands.length > 0 && (
+            <AccordionItem value="brand">
+              <AccordionTrigger className="text-base font-semibold">
+                Brand
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="grid gap-2 pt-2">
+                  {brands.map(brand => (
+                    <div key={brand} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`brand-${brand}`}
+                        checked={selectedBrands.has(brand)}
+                        onCheckedChange={() =>
+                          toggleSetValue(brand, setSelectedBrands)
+                        }
+                      />
+                      <Label
+                        htmlFor={`brand-${brand}`}
+                        className="font-normal text-sm cursor-pointer"
+                      >
+                        {brand}
+                      </Label>
                     </div>
-                     <span className="text-sm text-muted-foreground">{cbdCount}</span>
-                  </div>
-              </div>
-            </AccordionContent>
-          </AccordionItem>
+                  ))}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          )}
         </Accordion>
       </CardContent>
     </Card>

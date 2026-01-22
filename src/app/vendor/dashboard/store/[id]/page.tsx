@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, use } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -49,7 +49,7 @@ const defaultHours = [
 ];
 
 
-export default function EditStorePage({ params }: { params: { id: string } }) {
+export default function EditStorePage({ params }: { params: Promise<{ id: string }> }) {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -71,8 +71,9 @@ export default function EditStorePage({ params }: { params: { id: string } }) {
   });
 
   const { formState: { isSubmitting, isDirty }, reset, control } = form;
-  const storeId = params.id;
-  
+  const unwrappedParams = use(params);
+  const storeId = unwrappedParams.id;
+
   const { fields } = useFieldArray({
     control,
     name: "hours",
@@ -83,12 +84,12 @@ export default function EditStorePage({ params }: { params: { id: string } }) {
       if (user && firestore && storeId) {
         const dispensaryDocRef = doc(firestore, 'users', user.uid, 'dispensaries', storeId);
         const docSnap = await getDoc(dispensaryDocRef);
-        
+
         if (docSnap.exists()) {
           const storeData = docSnap.data() as Dispensary;
           reset({
-              ...storeData,
-              hours: storeData.hours && storeData.hours.length === 7 ? storeData.hours : defaultHours,
+            ...storeData,
+            hours: storeData.hours && storeData.hours.length === 7 ? storeData.hours : defaultHours,
           });
         } else {
           toast({ variant: 'destructive', title: 'Not Found', description: 'The requested store could not be found.' });
@@ -97,7 +98,7 @@ export default function EditStorePage({ params }: { params: { id: string } }) {
       }
     }
     if (!isUserLoading) {
-        fetchStore();
+      fetchStore();
     }
   }, [user, firestore, reset, storeId, toast, router, isUserLoading]);
 
@@ -107,7 +108,7 @@ export default function EditStorePage({ params }: { params: { id: string } }) {
     try {
       const privateDispensaryDocRef = doc(firestore, 'users', user.uid, 'dispensaries', storeId);
       const publicDispensaryDocRef = doc(firestore, 'dispensaries', storeId);
-      
+
       const dataToSave = {
         ...values,
         vendorId: user.uid,
@@ -115,7 +116,7 @@ export default function EditStorePage({ params }: { params: { id: string } }) {
         slug: values.name.toLowerCase().replace(/ /g, '-').replace(/[^a-z0-9-]/g, ''),
         updatedAt: serverTimestamp(),
       };
-      
+
       setDocumentNonBlocking(privateDispensaryDocRef, dataToSave, { merge: true });
       setDocumentNonBlocking(publicDispensaryDocRef, dataToSave, { merge: true });
 
@@ -132,119 +133,119 @@ export default function EditStorePage({ params }: { params: { id: string } }) {
       });
     }
   }
-  
+
   if (isUserLoading || form.formState.isLoading) {
-      return (
-        <div>
-            <Breadcrumb className="mb-6">
-                <BreadcrumbList>
-                    <BreadcrumbItem><BreadcrumbLink href="/vendor/dashboard">Dashboard</BreadcrumbLink></BreadcrumbItem>
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem><BreadcrumbLink href="/vendor/dashboard/stores">My Stores</BreadcrumbLink></BreadcrumbItem>
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem><BreadcrumbPage>Edit Store</BreadcrumbPage></BreadcrumbItem>
-                </BreadcrumbList>
-            </Breadcrumb>
-            <Card>
-                <CardHeader>
-                    <Skeleton className="h-8 w-48" />
-                    <Skeleton className="h-4 w-64" />
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-10 w-full" /></div>
-                </CardContent>
-                <CardFooter>
-                    <Skeleton className="h-10 w-32" />
-                </CardFooter>
-            </Card>
-        </div>
-      )
+    return (
+      <div>
+        <Breadcrumb className="mb-6">
+          <BreadcrumbList>
+            <BreadcrumbItem><BreadcrumbLink href="/vendor/dashboard">Dashboard</BreadcrumbLink></BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem><BreadcrumbLink href="/vendor/dashboard/stores">My Stores</BreadcrumbLink></BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem><BreadcrumbPage>Edit Store</BreadcrumbPage></BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-64" />
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-10 w-full" /></div>
+          </CardContent>
+          <CardFooter>
+            <Skeleton className="h-10 w-32" />
+          </CardFooter>
+        </Card>
+      </div>
+    )
   }
 
   return (
     <div>
-        <Breadcrumb className="mb-6">
-            <BreadcrumbList>
-                <BreadcrumbItem><BreadcrumbLink href="/vendor/dashboard">Dashboard</BreadcrumbLink></BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem><BreadcrumbLink href="/vendor/dashboard/stores">My Stores</BreadcrumbLink></BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem><BreadcrumbPage>{form.getValues('name') || 'Edit Store'}</BreadcrumbPage></BreadcrumbItem>
-            </BreadcrumbList>
-        </Breadcrumb>
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
-            <Card>
-                <CardHeader>
-                <CardTitle>Dispensary Information</CardTitle>
-                <CardDescription>Manage your public-facing store details here.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Store Name</FormLabel><FormControl><Input placeholder="Buds & Blooms" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="imageUrl" render={({ field }) => (<FormItem><FormLabel>Image URL</FormLabel><FormControl><Input placeholder="https://example.com/image.jpg" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="address" render={({ field }) => (<FormItem><FormLabel>Street Address</FormLabel><FormControl><Input placeholder="123 Main St" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField control={form.control} name="suburb" render={({ field }) => (<FormItem><FormLabel>Suburb</FormLabel><FormControl><Input placeholder="e.g., Woodstock" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField control={form.control} name="city" render={({ field }) => (<FormItem><FormLabel>City</FormLabel><FormControl><Input placeholder="Los Angeles" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField control={form.control} name="state" render={({ field }) => (<FormItem><FormLabel>State</FormLabel><FormControl><Input placeholder="CA" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField control={form.control} name="zipCode" render={({ field }) => (<FormItem><FormLabel>Zip Code</FormLabel><FormControl><Input placeholder="90210" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField control={form.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input placeholder="(123) 456-7890" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField control={form.control} name="website" render={({ field }) => (<FormItem><FormLabel>Website</FormLabel><FormControl><Input placeholder="https://example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                </div>
-                <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Opening Hours</h3>
-                     {fields.map((field, index) => {
-                        const dayValue = form.watch(`hours.${index}`);
-                        return (
-                            <div key={field.id} className="grid grid-cols-4 items-center gap-4 p-3 rounded-lg border">
-                                <FormLabel className="col-span-4 sm:col-span-1">{field.day}</FormLabel>
-                                <div className="col-span-4 sm:col-span-3 grid grid-cols-3 gap-4 items-center">
-                                    <FormField
-                                        control={control}
-                                        name={`hours.${index}.open`}
-                                        render={({ field }) => <FormItem><FormControl><Input type="time" {...field} disabled={!dayValue.isOpen} /></FormControl></FormItem>}
-                                    />
-                                    <FormField
-                                        control={control}
-                                        name={`hours.${index}.close`}
-                                        render={({ field }) => <FormItem><FormControl><Input type="time" {...field} disabled={!dayValue.isOpen} /></FormControl></FormItem>}
-                                    />
-                                     <FormField
-                                        control={control}
-                                        name={`hours.${index}.isOpen`}
-                                        render={({ field }) => (
-                                            <FormItem className="flex flex-row items-center justify-end space-x-2">
-                                                 <FormLabel htmlFor={`is-open-${index}`} className="text-sm font-normal">
-                                                    {dayValue.isOpen ? "Open" : "Closed"}
-                                                 </FormLabel>
-                                                <FormControl>
-                                                    <Switch
-                                                        id={`is-open-${index}`}
-                                                        checked={field.value}
-                                                        onCheckedChange={field.onChange}
-                                                    />
-                                                </FormControl>
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-                            </div>
-                        )
-                     })}
-                </div>
-                </CardContent>
-                <CardFooter>
-                <Button type="submit" disabled={isSubmitting || !isDirty}>
-                    {isSubmitting ? 'Saving...' : 'Save Changes'}
-                </Button>
-                </CardFooter>
-            </Card>
-            </form>
-        </Form>
+      <Breadcrumb className="mb-6">
+        <BreadcrumbList>
+          <BreadcrumbItem><BreadcrumbLink href="/vendor/dashboard">Dashboard</BreadcrumbLink></BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem><BreadcrumbLink href="/vendor/dashboard/stores">My Stores</BreadcrumbLink></BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem><BreadcrumbPage>{form.getValues('name') || 'Edit Store'}</BreadcrumbPage></BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          <Card>
+            <CardHeader>
+              <CardTitle>Dispensary Information</CardTitle>
+              <CardDescription>Manage your public-facing store details here.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Store Name</FormLabel><FormControl><Input placeholder="Buds & Blooms" {...field} /></FormControl><FormMessage /></FormItem>)} />
+              <FormField control={form.control} name="imageUrl" render={({ field }) => (<FormItem><FormLabel>Image URL</FormLabel><FormControl><Input placeholder="https://example.com/image.jpg" {...field} /></FormControl><FormMessage /></FormItem>)} />
+              <FormField control={form.control} name="address" render={({ field }) => (<FormItem><FormLabel>Street Address</FormLabel><FormControl><Input placeholder="123 Main St" {...field} /></FormControl><FormMessage /></FormItem>)} />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField control={form.control} name="suburb" render={({ field }) => (<FormItem><FormLabel>Suburb</FormLabel><FormControl><Input placeholder="e.g., Woodstock" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="city" render={({ field }) => (<FormItem><FormLabel>City</FormLabel><FormControl><Input placeholder="Los Angeles" {...field} /></FormControl><FormMessage /></FormItem>)} />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField control={form.control} name="state" render={({ field }) => (<FormItem><FormLabel>State</FormLabel><FormControl><Input placeholder="CA" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="zipCode" render={({ field }) => (<FormItem><FormLabel>Zip Code</FormLabel><FormControl><Input placeholder="90210" {...field} /></FormControl><FormMessage /></FormItem>)} />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField control={form.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input placeholder="(123) 456-7890" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="website" render={({ field }) => (<FormItem><FormLabel>Website</FormLabel><FormControl><Input placeholder="https://example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
+              </div>
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Opening Hours</h3>
+                {fields.map((field, index) => {
+                  const dayValue = form.watch(`hours.${index}`);
+                  return (
+                    <div key={field.id} className="grid grid-cols-4 items-center gap-4 p-3 rounded-lg border">
+                      <FormLabel className="col-span-4 sm:col-span-1">{field.day}</FormLabel>
+                      <div className="col-span-4 sm:col-span-3 grid grid-cols-3 gap-4 items-center">
+                        <FormField
+                          control={control}
+                          name={`hours.${index}.open`}
+                          render={({ field }) => <FormItem><FormControl><Input type="time" {...field} disabled={!dayValue.isOpen} /></FormControl></FormItem>}
+                        />
+                        <FormField
+                          control={control}
+                          name={`hours.${index}.close`}
+                          render={({ field }) => <FormItem><FormControl><Input type="time" {...field} disabled={!dayValue.isOpen} /></FormControl></FormItem>}
+                        />
+                        <FormField
+                          control={control}
+                          name={`hours.${index}.isOpen`}
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-end space-x-2">
+                              <FormLabel htmlFor={`is-open-${index}`} className="text-sm font-normal">
+                                {dayValue.isOpen ? "Open" : "Closed"}
+                              </FormLabel>
+                              <FormControl>
+                                <Switch
+                                  id={`is-open-${index}`}
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button type="submit" disabled={isSubmitting || !isDirty}>
+                {isSubmitting ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </CardFooter>
+          </Card>
+        </form>
+      </Form>
     </div>
   );
 }

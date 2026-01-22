@@ -16,19 +16,19 @@ async function getDispensaryBySlug(slug: string): Promise<Dispensary | null> {
     const dispensariesCol = collection(db, 'dispensaries');
     const q = query(dispensariesCol, where("slug", "==", slug));
     const dispensarySnapshot = await getDocs(q);
-    
+
     if (dispensarySnapshot.empty) {
-        return null;
+      return null;
     }
 
     const dispensaryDoc = dispensarySnapshot.docs[0];
     const dispensaryData = dispensaryDoc.data();
-    
+
     const dispensary = {
-        ...dispensaryData,
-        id: dispensaryDoc.id,
-        createdAt: dispensaryData.createdAt instanceof Timestamp ? dispensaryData.createdAt.toDate().toISOString() : (dispensaryData.createdAt || null),
-        updatedAt: dispensaryData.updatedAt instanceof Timestamp ? dispensaryData.updatedAt.toDate().toISOString() : (dispensaryData.updatedAt || null),
+      ...dispensaryData,
+      id: dispensaryDoc.id,
+      createdAt: dispensaryData.createdAt instanceof Timestamp ? dispensaryData.createdAt.toDate().toISOString() : (dispensaryData.createdAt || null),
+      updatedAt: dispensaryData.updatedAt instanceof Timestamp ? dispensaryData.updatedAt.toDate().toISOString() : (dispensaryData.updatedAt || null),
     } as Dispensary;
 
     return dispensary;
@@ -39,47 +39,48 @@ async function getDispensaryBySlug(slug: string): Promise<Dispensary | null> {
 }
 
 async function getProductsForDispensary(dispensaryId: string): Promise<Product[]> {
-    try {
-        const firebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-        const db = getFirestore(firebaseApp);
-        const productsCol = collection(db, 'dispensaries', dispensaryId, 'products');
-        const productsSnapshot = await getDocs(productsCol);
-        
-        if (productsSnapshot.empty) {
-            return [];
-        }
+  try {
+    const firebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    const db = getFirestore(firebaseApp);
+    const productsCol = collection(db, 'dispensaries', dispensaryId, 'products');
+    const productsSnapshot = await getDocs(productsCol);
 
-        const productList = productsSnapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                ...data,
-                id: doc.id,
-                createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || null),
-                updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : (data.updatedAt || null),
-            } as Product;
-        });
-
-        return productList;
-    } catch (error) {
-        console.error("Error fetching products for dispensary:", error);
-        return [];
+    if (productsSnapshot.empty) {
+      return [];
     }
+
+    const productList = productsSnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        ...data,
+        id: doc.id,
+        createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || null),
+        updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : (data.updatedAt || null),
+      } as Product;
+    });
+
+    return productList;
+  } catch (error) {
+    console.error("Error fetching products for dispensary:", error);
+    return [];
+  }
 }
 
-export default async function DispensaryPage({ params }: { params: { slug: string } }) {
-  const dispensary = await getDispensaryBySlug(params.slug);
+export default async function DispensaryPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const dispensary = await getDispensaryBySlug(slug);
 
   if (!dispensary || !dispensary.id) {
     notFound();
   }
 
-  const products = await getProductsForDispensary(dispensary.id); 
+  const products = await getProductsForDispensary(dispensary.id);
 
   return (
     <div className="flex flex-col min-h-dvh bg-background text-foreground">
-        <HeaderProvider />
-        <DispensaryDetailClient dispensary={dispensary} products={products} />
-        <Footer />
+      <HeaderProvider />
+      <DispensaryDetailClient dispensary={dispensary} products={products} />
+      <Footer />
     </div>
   );
 }

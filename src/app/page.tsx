@@ -34,13 +34,13 @@ const allCategories: Category[] = [
 ];
 
 const homePageCategories = [
-    { name: 'Limited Collection', icon: Hourglass, href: '/category/concentrates' },
-    { name: 'New Strains', icon: Wheat, href: '/category/flower', badge: 'NEW' },
-    { name: 'Buds', icon: Leaf, href: '/category/flower', badge: 'Popular' },
-    { name: 'Extracts & Vapes', icon: SprayCan, href: '/category/vapes' },
-    { name: 'Edibles', icon: Cookie, href: '/category/edibles', badge: 'Returned' },
-    { name: 'Accessories', icon: GlassWater, href: '/category/concentrates' },
-    { name: 'Joints', icon: Cigarette, href: '/category/prerolls' },
+  { name: 'Limited Collection', icon: Hourglass, href: '/category/concentrates' },
+  { name: 'New Strains', icon: Wheat, href: '/category/flower', badge: 'NEW' },
+  { name: 'Buds', icon: Leaf, href: '/category/flower', badge: 'Popular' },
+  { name: 'Extracts & Vapes', icon: SprayCan, href: '/category/vapes' },
+  { name: 'Edibles', icon: Cookie, href: '/category/edibles', badge: 'Returned' },
+  { name: 'Accessories', icon: GlassWater, href: '/category/concentrates' },
+  { name: 'Joints', icon: Cigarette, href: '/category/prerolls' },
 ]
 
 const categoryIdToProductType: { [key: string]: Product['category'] } = {
@@ -75,104 +75,104 @@ async function getDispensaries(featuredOnly: boolean = false): Promise<Dispensar
 }
 
 async function getHotDeals(): Promise<ProductWithDispensary[]> {
-    try {
-        const firebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-        const db = getFirestore(firebaseApp);
-        
-        // 1. Fetch all dispensaries and create a map
-        const dispensariesSnapshot = await getDocs(collection(db, 'dispensaries'));
-        const dispensaryMap = new Map<string, Dispensary>();
-        dispensariesSnapshot.forEach(doc => {
-            dispensaryMap.set(doc.id, { id: doc.id, ...doc.data() } as Dispensary);
-        });
+  try {
+    const firebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    const db = getFirestore(firebaseApp);
 
-        // 2. Fetch all "hot deal" products
-        const productsQuery = query(collectionGroup(db, 'products'), where('isHotDeal', '==', true));
-        const productsSnapshot = await getDocs(productsQuery);
-        
-        const hotDeals: ProductWithDispensary[] = [];
-        productsSnapshot.forEach(productDoc => {
-            const productData = productDoc.data() as Product;
-            const dispensaryId = productDoc.ref.parent.parent?.id;
+    // 1. Fetch all dispensaries and create a map
+    const dispensariesSnapshot = await getDocs(collection(db, 'dispensaries'));
+    const dispensaryMap = new Map<string, Dispensary>();
+    dispensariesSnapshot.forEach(doc => {
+      dispensaryMap.set(doc.id, { id: doc.id, ...doc.data() } as Dispensary);
+    });
 
-            if (dispensaryId) {
-                const dispensary = dispensaryMap.get(dispensaryId);
-                if (dispensary) {
-                    hotDeals.push({
-                        ...productData,
-                        id: productDoc.id,
-                        dispensaryId: dispensaryId,
-                        dispensary: dispensary
-                    });
-                }
-            }
-        });
-        
-        return hotDeals;
-    } catch (error) {
-        console.error("Error fetching hot deals:", error);
-        return [];
-    }
+    // 2. Fetch all "hot deal" products
+    const productsQuery = query(collectionGroup(db, 'products'), where('isHotDeal', '==', true));
+    const productsSnapshot = await getDocs(productsQuery);
+
+    const hotDeals: ProductWithDispensary[] = [];
+    productsSnapshot.forEach(productDoc => {
+      const productData = productDoc.data() as Product;
+      const dispensaryId = productDoc.ref.parent.parent?.id;
+
+      if (dispensaryId) {
+        const dispensary = dispensaryMap.get(dispensaryId);
+        if (dispensary) {
+          hotDeals.push({
+            ...productData,
+            id: productDoc.id,
+            dispensaryId: dispensaryId,
+            dispensary: dispensary
+          });
+        }
+      }
+    });
+
+    return hotDeals;
+  } catch (error) {
+    console.error("Error fetching hot deals:", error);
+    return [];
+  }
 }
 
 
 async function getAvailableCategories(): Promise<Category[]> {
   try {
-      const firebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-      const db = getFirestore(firebaseApp);
-      const productsQuery = query(collectionGroup(db, 'products'));
-      const productsSnapshot = await getDocs(productsQuery);
-      
-      const availableProductTypes = new Set<string>();
-      let hasCbdProduct = false;
+    const firebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    const db = getFirestore(firebaseApp);
+    const productsQuery = query(collectionGroup(db, 'products'));
+    const productsSnapshot = await getDocs(productsQuery);
 
-      productsSnapshot.forEach(doc => {
-          const product = doc.data() as Product;
-          if (product.category) {
-              availableProductTypes.add(product.category);
-          }
-          if (product.cbd && product.cbd > 0) {
-              hasCbdProduct = true;
-          }
-      });
+    const availableProductTypes = new Set<string>();
+    let hasCbdProduct = false;
 
-      const availableCategories = allCategories.filter(category => {
-          if (category.id === 'cbd') {
-              return hasCbdProduct;
-          }
-          const productType = categoryIdToProductType[category.id];
-          return productType ? availableProductTypes.has(productType) : false;
-      });
-      
-      return availableCategories;
+    productsSnapshot.forEach(doc => {
+      const product = doc.data() as Product;
+      if (product.category) {
+        availableProductTypes.add(product.category);
+      }
+      if (product.cbd && product.cbd > 0) {
+        hasCbdProduct = true;
+      }
+    });
+
+    const availableCategories = allCategories.filter(category => {
+      if (category.id === 'cbd') {
+        return hasCbdProduct;
+      }
+      const productType = categoryIdToProductType[category.id];
+      return productType ? availableProductTypes.has(productType) : false;
+    });
+
+    return availableCategories;
 
   } catch (error) {
-      console.error("Error fetching products for category availability:", error);
-      // Fallback to all categories on error
-      return allCategories;
+    console.error("Error fetching products for category availability:", error);
+    // Fallback to all categories on error
+    return allCategories;
   }
 }
 
 function generateRegionsFromDispensaries(dispensaries: Dispensary[]): Region[] {
-    const regionsMap: { [state: string]: { slug: string; cities: Set<string> } } = {};
+  const regionsMap: { [state: string]: { slug: string; cities: Set<string> } } = {};
 
-    dispensaries.forEach(dispensary => {
-        if (dispensary.state && dispensary.city) {
-            if (!regionsMap[dispensary.state]) {
-                regionsMap[dispensary.state] = {
-                    slug: dispensary.state.toLowerCase().replace(/\s+/g, '-'),
-                    cities: new Set(),
-                };
-            }
-            regionsMap[dispensary.state].cities.add(dispensary.city);
-        }
-    });
+  dispensaries.forEach(dispensary => {
+    if (dispensary.state && dispensary.city) {
+      if (!regionsMap[dispensary.state]) {
+        regionsMap[dispensary.state] = {
+          slug: dispensary.state.toLowerCase().replace(/\s+/g, '-'),
+          cities: new Set(),
+        };
+      }
+      regionsMap[dispensary.state].cities.add(dispensary.city);
+    }
+  });
 
-    return Object.entries(regionsMap).map(([state, { slug, cities }]) => ({
-        state,
-        slug,
-        cities: Array.from(cities).sort(),
-    }));
+  return Object.entries(regionsMap).map(([state, { slug, cities }]) => ({
+    state,
+    slug,
+    cities: Array.from(cities).sort(),
+  }));
 }
 
 
@@ -187,28 +187,7 @@ export default async function Home() {
     <div className="flex flex-col min-h-dvh bg-background text-foreground">
       <HeaderProvider />
       <main className="flex-grow">
-        <section className="py-8 bg-card border-b hidden sm:block">
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4">
-                    {homePageCategories.map(category => (
-                        <Link key={category.name} href={category.href}>
-                            <div className="group relative flex flex-col items-center justify-center h-28 p-4 bg-muted/50 rounded-lg shadow-sm transition-all duration-300 hover:shadow-md hover:bg-muted">
-                                {category.badge && (
-                                    <Badge 
-                                        variant={category.badge === 'NEW' ? 'default' : category.badge === 'Popular' ? 'secondary' : 'destructive'} 
-                                        className="absolute -top-2 -right-2 text-xs"
-                                    >
-                                        {category.badge}
-                                    </Badge>
-                                )}
-                                <category.icon className="w-8 h-8 text-muted-foreground group-hover:text-primary transition-colors" />
-                                <p className="mt-2 text-sm font-medium text-center text-muted-foreground group-hover:text-primary transition-colors">{category.name}</p>
-                            </div>
-                        </Link>
-                    ))}
-                </div>
-            </div>
-        </section>
+
 
         <section className="py-8">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -216,32 +195,32 @@ export default async function Home() {
               {/* Main Carousel */}
               <div className="lg:col-span-2">
                 <Link href="/deals" className="block relative rounded-xl overflow-hidden h-[500px] group">
-                    <Image src="https://plus.unsplash.com/premium_photo-1695229820933-fa53194ed81f?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="Promotion" fill className="object-cover transition-transform duration-300 group-hover:scale-105" data-ai-hint="cannabis product" />
-                    <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors"></div>
-                    <div className="absolute bottom-0 left-0 p-8 text-white">
-                        <h2 className="text-3xl font-bold">Hot Deals</h2>
-                        <p>Check out the latest sales.</p>
-                    </div>
+                  <Image src="https://plus.unsplash.com/premium_photo-1695229820933-fa53194ed81f?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="Promotion" fill className="object-cover transition-transform duration-300 group-hover:scale-105" data-ai-hint="cannabis product" />
+                  <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors"></div>
+                  <div className="absolute bottom-0 left-0 p-8 text-white">
+                    <h2 className="text-3xl font-bold">Hot Deals</h2>
+                    <p>Check out the latest sales.</p>
+                  </div>
                 </Link>
               </div>
 
               {/* Side Banners */}
               <div className="flex flex-col gap-6">
-                 <Link href="#" className="block relative rounded-xl overflow-hidden h-full group">
-                    <Image src="https://images.unsplash.com/photo-1621335891390-3b03d7e5e8e3?q=80&w=1074&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="Fast Delivery" fill className="object-cover transition-transform duration-300 group-hover:scale-105" data-ai-hint="delivery scooter" />
-                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors"></div>
-                     <div className="absolute bottom-0 left-0 p-6 text-white">
-                        <h3 className="text-2xl font-bold">Fast Delivery</h3>
-                        <p className="text-sm">Get your order in minutes</p>
-                    </div>
+                <Link href="#" className="block relative rounded-xl overflow-hidden h-full group">
+                  <Image src="https://images.unsplash.com/photo-1621335891390-3b03d7e5e8e3?q=80&w=1074&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="Fast Delivery" fill className="object-cover transition-transform duration-300 group-hover:scale-105" data-ai-hint="delivery scooter" />
+                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors"></div>
+                  <div className="absolute bottom-0 left-0 p-6 text-white">
+                    <h3 className="text-2xl font-bold">Fast Delivery</h3>
+                    <p className="text-sm">Get your order in minutes</p>
+                  </div>
                 </Link>
                 <Link href="/deals" className="block relative rounded-xl overflow-hidden h-full group">
-                    <Image src="https://images.unsplash.com/photo-1556928045-16f7f50be0f3?q=80&w=1974&auto=format&fit=crop" alt="Promotion" fill className="object-cover transition-transform duration-300 group-hover:scale-105" data-ai-hint="cannabis lifestyle" />
-                    <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors"></div>
-                    <div className="absolute bottom-0 left-0 p-6 text-white">
-                        <h2 className="text-2xl font-bold">New Arrivals</h2>
-                        <p>Explore the freshest products.</p>
-                    </div>
+                  <Image src="https://images.unsplash.com/photo-1556928045-16f7f50be0f3?q=80&w=1974&auto=format&fit=crop" alt="Promotion" fill className="object-cover transition-transform duration-300 group-hover:scale-105" data-ai-hint="cannabis lifestyle" />
+                  <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors"></div>
+                  <div className="absolute bottom-0 left-0 p-6 text-white">
+                    <h2 className="text-2xl font-bold">New Arrivals</h2>
+                    <p>Explore the freshest products.</p>
+                  </div>
                 </Link>
               </div>
             </div>
@@ -277,53 +256,31 @@ export default async function Home() {
         </section>
 
         {hotDeals.length > 0 && (
-            <section className="py-12 md:py-16 bg-muted/20">
-              <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-                <h2 className="text-3xl font-bold tracking-tight text-center font-headline mb-10">Today's Hot Deals</h2>
-                <Carousel
-                  opts={{
-                    align: "start",
-                    loop: hotDeals.length > 4,
-                  }}
-                  className="w-full"
-                >
-                  <CarouselContent>
-                    {hotDeals.map((product) => (
-                      <CarouselItem key={product.id} className="basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4">
-                        <div className="p-2 h-full">
-                            <DealProductCard product={product} />
-                        </div>
-                      </CarouselItem>
-                    ))}
-                  </CarouselContent>
-                  <CarouselPrevious className="hidden sm:flex" />
-                  <CarouselNext className="hidden sm:flex" />
-                </Carousel>
-              </div>
-            </section>
-        )}
-        
-        <section className="py-12 md:py-16">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-3xl font-bold tracking-tight text-center font-headline">Dispensary Regions</h2>
-            <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
-              {dispensaryRegions.map((region) => (
-                <div key={region.slug}>
-                  <h3 className="text-xl font-semibold mb-4 border-l-4 border-primary pl-3">{region.state}</h3>
-                  <ul className="space-y-3">
-                    {region.cities.map((city) => (
-                      <li key={city}>
-                        <Link href={`/region/${region.slug}?city=${city.toLowerCase().replace(/\s+/g, '-')}`} className="text-muted-foreground hover:text-primary transition-colors duration-200">
-                          {city}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
+          <section className="py-12 md:py-16 bg-muted/20">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+              <h2 className="text-3xl font-bold tracking-tight text-center font-headline mb-10">Today's Hot Deals</h2>
+              <Carousel
+                opts={{
+                  align: "start",
+                  loop: hotDeals.length > 4,
+                }}
+                className="w-full"
+              >
+                <CarouselContent>
+                  {hotDeals.map((product) => (
+                    <CarouselItem key={product.id} className="basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4">
+                      <div className="p-2 h-full">
+                        <DealProductCard product={product} />
+                      </div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious className="hidden sm:flex" />
+                <CarouselNext className="hidden sm:flex" />
+              </Carousel>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
       </main>
       <Footer />
     </div>

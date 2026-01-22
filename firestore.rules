@@ -21,15 +21,15 @@ service cloud.firestore {
     }
 
     function isVendor() {
-      return isSignedIn() && getRole() == 'vendor';
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getRole() == 'vendor';
     }
 
     function isAdmin() {
-      return isSignedIn() && getRole() == 'admin';
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getRole() == 'admin';
     }
 
     function isDriver() {
-      return isSignedIn() && getRole() == 'driver';
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getRole() == 'driver';
     }
 
     function isDispensaryOwner(dispensaryId) {
@@ -97,6 +97,11 @@ service cloud.firestore {
              request.resource.data.status == 'cancelled';
     }
 
+    // Global products access for collectionGroup queries
+    match /{path=**}/products/{productId} {
+      allow get, list: if true;
+    }
+
     /* ───────────────────────
        Users collection
     ─────────────────────── */
@@ -141,14 +146,12 @@ service cloud.firestore {
 
 
     /* ───────────────────────
-       Dispensaries
+       Dispensaries (Public)
     ─────────────────────── */
 
     match /dispensaries/{dispensaryId} {
       // Anyone can view public dispensary information.
-      allow get: if true;
-      // Anyone can list dispensaries. This is needed for the homepage.
-      allow list: if true;
+      allow get, list: if true;
       // Only a vendor can create a dispensary, and they must be the owner.
       allow create: if isVendor() && request.resource.data.vendorId == request.auth.uid;
       // An owning vendor can update everything.
@@ -182,7 +185,7 @@ service cloud.firestore {
         // A customer can read their own specific order.
         // The owning vendor or an admin can read any order.
         // A driver can read orders that are ready for pickup or that they are delivering.
-        allow read, get: if isDispensaryOwner(dispensaryId) || isAdmin() || 
+        allow read: if isDispensaryOwner(dispensaryId) || isAdmin() || 
                            (isDriver() && (resource.data.status == 'ready-for-pickup' || resource.data.driverId == request.auth.uid)) ||
                            (isSignedIn() && resource.data.customerId == request.auth.uid);
                            
@@ -197,11 +200,6 @@ service cloud.firestore {
         // No one can delete an order directly.
         allow delete: if false;
       }
-    }
-    
-    // This rule specifically allows an admin to perform a collectionGroup query on 'products'
-    match /{path=**}/products/{productId} {
-      allow list: if isAdmin();
     }
     
     // This rule specifically allows a driver or admin to perform a collectionGroup query on 'orders'
